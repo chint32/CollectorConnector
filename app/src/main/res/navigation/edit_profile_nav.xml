@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/edit_profile_nav.xml"
+    app:startDestination="@id/editProfileFragment">
+
+    <fragment
+        android:id="@+id/editProfileFragment"
+        android:name="com.example.collectorconnector.edit_profile.EditProfileFragment"
+        android:label="EditProfileFragment" >
+        <action
+            android:id="@+id/action_editProfileFragment_to_displayedCollectiblesFragment"
+            app:destination="@id/displayedCollectiblesFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/displayedCollectiblesFragment"
+        android:name="com.example.collectorconnector.edit_profile.EditCollectiblesFragment"
+        android:label="DisplayedCollectiblesFragment" >
+        <action
+            android:id="@+id/action_displayedCollectiblesFragment_to_addCollectibleFragment"
+            app:destination="@id/addCollectibleFragment" />
+        <action
+            android:id="@+id/action_displayedCollectiblesFragment_to_editProfileFragment"
+            app:destination="@id/editProfileFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/addCollectibleFragment"
+        android:name="com.example.collectorconnector.edit_profile.AddCollectibleFragment"
+        android:label="AddCollectibleFragment" >
+        <action
+            android:id="@+id/action_addCollectibleFragment_to_displayedCollectiblesFragment"
+            app:destination="@id/displayedCollectiblesFragment" />
+    </fragment>
+</navigation>

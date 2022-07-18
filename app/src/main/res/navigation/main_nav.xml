@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav"
+    app:startDestination="@id/homeFragment">
+
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.example.collectorconnector.main.ProfileFragment"
+        android:label="ProfileFragment"
+        tools:layout="@layout/fragment_profile">
+        <action
+            android:id="@+id/action_searchFragment_to_collectibleDetailsFragment"
+            app:destination="@id/collectibleDetailsFragment" />
+        <argument
+            android:name="userId"
+            app:argType="string" />
+    </fragment>
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.example.collectorconnector.main.HomeFragment"
+        android:label="HomeFragment"
+        tools:layout="@layout/fragment_home">
+        <action
+            android:id="@+id/action_homeFragment_to_collectibleDetailsFragment"
+            app:destination="@id/collectibleDetailsFragment"/>
+    </fragment>
+    <fragment
+        android:id="@+id/collectibleDetailsFragment"
+        android:name="com.example.collectorconnector.main.CollectibleDetailsFragment"
+        android:label="CollectibleDetailsFragment" >
+        <action
+            android:id="@+id/action_collectibleDetailsFragment_to_messageFragment"
+            app:destination="@id/messageFragment" />
+        <argument
+            android:name="collectible"
+            app:argType="com.example.collectorconnector.models.Collectible" />
+        <action
+            android:id="@+id/action_collectibleDetailsFragment_to_profileFragment"
+            app:destination="@id/profileFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/conversationsFragment"
+        android:name="com.example.collectorconnector.main.ConversationsFragment"
+        android:label="ConversationsFragment" >
+        <action
+            android:id="@+id/action_conversationsFragment_to_messageFragment"
+            app:destination="@id/messageFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/messageFragment"
+        android:name="com.example.collectorconnector.main.MessageFragment"
+        android:label="MessageFragment" >
+        <argument
+            android:name="otherUserId"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_messageFragment_self"
+            app:destination="@id/messageFragment" />
+    </fragment>
+
+</navigation>
