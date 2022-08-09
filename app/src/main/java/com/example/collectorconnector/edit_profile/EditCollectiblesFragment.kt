@@ -21,7 +21,7 @@ import com.example.collectorconnector.models.Collectible
 import com.example.collectorconnector.util.Constants
 
 
-class EditCollectiblesFragment : Fragment(), CollectibleAdapter.OnItemClickListener {
+class EditCollectiblesFragment : Fragment(), CollectibleAdapter.OnItemClickListener, CollectibleAdapter.OnFavoriteClickListener {
 
     private lateinit var binding: FragmentEditCollectiblesBinding
     private var showCheckBoxes = true
@@ -45,7 +45,7 @@ class EditCollectiblesFragment : Fragment(), CollectibleAdapter.OnItemClickListe
         // are instantiated
         val activity = (requireActivity() as EditProfileActivity)
 
-        val adapter = CollectibleAdapter(myCollectibles, this, showCheckBoxes)
+        val adapter = CollectibleAdapter(myCollectibles, activity.userInfo, this, this, showCheckBoxes, false)
         binding.collectiblesRecycler.adapter = adapter
         binding.collectiblesRecycler.layoutManager = GridLayoutManager(requireContext(), 2)
 
@@ -54,10 +54,16 @@ class EditCollectiblesFragment : Fragment(), CollectibleAdapter.OnItemClickListe
         // observe this users collectibles
         viewModel.collectiblesLiveData.observe(viewLifecycleOwner, Observer {
             if(it == null) {
-                Toast.makeText(requireContext(), "Error retrieving user collectibles", Toast.LENGTH_SHORT).show()
+                binding.tvNoResults.text = "Error retrieving your collectibles. Please try again"
+                binding.tvNoResults.visibility = View.VISIBLE
+                binding.progressBar.visibility = View.GONE
                 return@Observer
             }
-            if(it.items.isEmpty()) return@Observer
+            if(it.items.isEmpty()) {
+                binding.tvNoResults.visibility = View.VISIBLE
+                binding.progressBar.visibility = View.GONE
+                return@Observer
+            }
 
             // cycle through through this users collectibles
             for (item in it.items) {
@@ -66,7 +72,8 @@ class EditCollectiblesFragment : Fragment(), CollectibleAdapter.OnItemClickListe
                 item.metadata.addOnSuccessListener { metadata ->
                     item.getBytes(Constants.ONE_HUNDRED_MEGABYTE)
                         .addOnSuccessListener { byteArray ->
-                            //binding.progressBar.visibility = View.GONE
+                            binding.progressBar.visibility = View.GONE
+
                             val tags = ArrayList<String>()
                             val tagsArr =
                                 metadata.getCustomMetadata("tags").toString()
@@ -80,6 +87,7 @@ class EditCollectiblesFragment : Fragment(), CollectibleAdapter.OnItemClickListe
                                 metadata.getCustomMetadata("desc").toString(),
                                 metadata.getCustomMetadata("cond").toString(),
                                 byteArray,
+                                metadata.getCustomMetadata("views").toString(),
                                 tags,
                                 activity.currentUser!!.uid
                             )
@@ -93,13 +101,14 @@ class EditCollectiblesFragment : Fragment(), CollectibleAdapter.OnItemClickListe
                                 "Error: " + it.message,
                                 Toast.LENGTH_SHORT
                             ).show()
-                            //binding.progressBar.visibility = View.GONE
+                            binding.progressBar.visibility = View.GONE
                         }
                 }
             }
         })
 
         viewModel.getCollectiblesByUid(activity.currentUser!!.uid)
+        binding.progressBar.visibility = View.VISIBLE
 
         // observe whether or not collectible deletion was successful or not
         viewModel.isCollectibleDeletedLiveData.observe(
@@ -176,11 +185,15 @@ class EditCollectiblesFragment : Fragment(), CollectibleAdapter.OnItemClickListe
 
         if(checkedItems.isNotEmpty()) {
             binding.btnDelete.isEnabled = true
-            binding.btnDelete.setBackgroundColor(resources.getColor(R.color.lime_green))
+            binding.btnDelete.alpha = 1f
         } else {
             binding.btnDelete.isEnabled = false
-            binding.btnDelete.setBackgroundColor(Color.parseColor("#364a29"))
+            binding.btnDelete.alpha = .5f
         }
 
+    }
+
+    override fun onFavoriteClick(position: Int) {
+        // nothing to do, you cant favorite your own collectibles
     }
 }

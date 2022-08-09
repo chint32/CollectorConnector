@@ -9,7 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:alpha=".9"
-        android:background="@drawable/simple_border">
+        android:background="@drawable/thin_white_border">
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -28,7 +28,8 @@
         android:layout_height="wrap_content"
         android:padding="8dp"
         android:text="ScreenName"
-        android:textColor="@color/white"
+        android:textColor="@color/text_color_black"
+        android:fontFamily="casual"
         android:textSize="16sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@+id/last_message"
@@ -43,7 +44,8 @@
         android:layout_height="0dp"
         android:padding="8dp"
         android:text="Message"
-        android:textColor="@color/white"
+        android:textColor="@color/text_color_black"
+        android:fontFamily="casual"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/tv_time"
         app:layout_constraintStart_toEndOf="@+id/profileImg"
@@ -55,7 +57,8 @@
         android:layout_height="0dp"
         android:padding="10dp"
         android:text="time"
-        android:textColor="@color/white"
+        android:textColor="@color/text_color_black"
+        android:fontFamily="casual"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@+id/tv_screen_name" />

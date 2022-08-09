@@ -72,7 +72,11 @@ dependencies {
     }
     kapt 'com.github.bumptech.glide:compiler:4.9.0'
 
+    // lottie
     implementation "com.airbnb.android:lottie:3.4.0"
+
+    // location
+    implementation "com.google.android.gms:play-services-location:$version_play_services_location"
 
 
     testImplementation 'junit:junit:4.13.2'

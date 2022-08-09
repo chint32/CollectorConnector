@@ -38,14 +38,17 @@ class LoginFragment : Fragment() {
         val activity = (requireActivity() as LoginActivity)
 
         activity.viewModel.authenticatedUserLiveData.observe(viewLifecycleOwner, Observer{
-            if (it == null || it.user == null){
-                binding.progressBar.visibility = View.GONE
+            binding.progressBar.visibility = View.GONE
+            if (it == null){
+                Toast.makeText(requireContext(), "Error finding specified user.\nPlease check email/pw and try again.", Toast.LENGTH_SHORT).show()
+                return@Observer
+            }
+            else if(it.user == null){
+                Toast.makeText(requireContext(), "Error logging in", Toast.LENGTH_SHORT).show()
                 return@Observer
             }
 
-            binding.progressBar.visibility = View.GONE
             activity.viewModel.getUserInfo(it.user!!.uid)
-
         })
 
         binding.tvRegHere.setOnClickListener{

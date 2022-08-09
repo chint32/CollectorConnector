@@ -11,7 +11,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
@@ -21,7 +20,6 @@ import androidx.navigation.fragment.findNavController
 import com.example.collectorconnector.R
 import com.example.collectorconnector.databinding.FragmentAddCollectibleBinding
 import com.example.collectorconnector.util.Constants.PICK_IMAGE_REQUEST
-import com.example.collectorconnector.util.Constants.tagsArray
 import com.google.firebase.storage.ktx.storageMetadata
 import java.io.IOException
 import java.util.*
@@ -36,7 +34,7 @@ class AddCollectibleFragment : Fragment() {
 
     // references for tags associated with the collectible to be added
     var tagsList: ArrayList<Int> = ArrayList()
-    private var selectedTags = BooleanArray(tagsArray.size)
+    private lateinit var selectedTags:BooleanArray
 
     // reference to parent activity
     private lateinit var activity: EditProfileActivity
@@ -59,6 +57,7 @@ class AddCollectibleFragment : Fragment() {
         val progressDialog = ProgressDialog(requireContext())
         progressDialog.setTitle("Uploading...")
 
+        selectedTags = BooleanArray(activity.tagsArray.size)
         // initially, no tags are associated with the collectible to be added
         for (i in selectedTags.indices) selectedTags[i] = false
 
@@ -102,7 +101,7 @@ class AddCollectibleFragment : Fragment() {
         builder.setTitle("Select Categories")
         builder.setCancelable(false)
 
-        builder.setMultiChoiceItems(tagsArray, selectedTags,
+        builder.setMultiChoiceItems(activity.tagsArray, selectedTags,
             DialogInterface.OnMultiChoiceClickListener { dialogInterface, i, b ->
 
                 if (b) {
@@ -123,7 +122,7 @@ class AddCollectibleFragment : Fragment() {
                 val stringBuilder = StringBuilder()
 
                 for (j in 0 until tagsList.size) {
-                    stringBuilder.append(tagsArray.get(tagsList.get(j)))
+                    stringBuilder.append(activity.tagsArray.get(tagsList.get(j)))
                     if (j != tagsList.size - 1) {
                         // When j value  not equal
                         // to lang list size - 1
@@ -241,8 +240,7 @@ class AddCollectibleFragment : Fragment() {
             setCustomMetadata("desc", binding.etDescription.text.toString())
             setCustomMetadata("cond", binding.etCondition.text.toString())
             setCustomMetadata("tags", binding.etSelectedTags.hint.toString())
-            setCustomMetadata("state", activity.userInfo.state)
-            setCustomMetadata("city", activity.userInfo.city)
+            setCustomMetadata("views", "0")
             setCustomMetadata("ownerId", activity.currentUser!!.uid)
         }
 

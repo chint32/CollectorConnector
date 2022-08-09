@@ -5,12 +5,10 @@
 
     <item
         android:id="@+id/edit_profile"
-        android:title="Edit Profile"
-        android:icon="@drawable/ic_baseline_message_24"/>
+        android:title="Edit Profile"/>
 
     <item
         android:id="@+id/logout"
-        android:title="Logout"
-        android:icon="@drawable/ic_baseline_message_24"/>
+        android:title="Logout"/>
 
 </menu>

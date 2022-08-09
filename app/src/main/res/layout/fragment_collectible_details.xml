@@ -20,33 +20,51 @@
             android:orientation="horizontal"
             app:layout_constraintGuide_percent=".9" />
 
+        <TextView
+            android:id="@+id/tv_numViews"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="casual"
+            android:layout_marginEnd="14dp"
+            android:text=""
+            android:drawableLeft="@drawable/ic_baseline_remove_red_eye_24"
+            android:textAlignment="center"
+            android:textColor="@color/pink"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="@+id/collectible_img"
+            app:layout_constraintEnd_toEndOf="parent" />
+
         <ImageView
-            android:id="@+id/imageView4"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_margin="12dp"
-            android:alpha=".9"
-            android:background="@drawable/simple_border"
-            app:layout_constraintBottom_toTopOf="@+id/btn_message_owner"
-            app:layout_constraintTop_toTopOf="@+id/guideline1"
-            tools:layout_editor_absoluteX="12dp" />
+            android:id="@+id/iv_favorite"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:elevation="2dp"
+            android:src="@drawable/ic_baseline_favorite_border_24"
+            android:tag="not fav"
+            app:layout_constraintTop_toTopOf="@+id/collectible_img"
+            app:layout_constraintEnd_toEndOf="@+id/collectible_img" />
+
+
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_margin="14dp"
-            app:layout_constraintBottom_toBottomOf="@+id/imageView4"
-            app:layout_constraintTop_toTopOf="@+id/imageView4"
+            app:layout_constraintBottom_toTopOf="@+id/btn_message_owner"
+            app:layout_constraintTop_toBottomOf="@+id/collectible_img"
             tools:layout_editor_absoluteX="14dp">
 
             <TextView
                 android:id="@+id/tv_collectible_name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:fontFamily="casual"
                 android:text="Collectible Name"
                 android:textAlignment="center"
-                android:textColor="@color/white"
+                android:textColor="@color/text_color_black"
                 android:textSize="20sp"
+                android:textStyle="bold"
                 app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
@@ -54,10 +72,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_marginTop="10dp"
+                android:fontFamily="casual"
                 android:text="Collectible Description"
                 android:textAlignment="center"
-                android:textColor="@color/white"
+                android:textColor="@color/text_color_black"
                 android:textSize="16sp"
+                android:textStyle="bold"
                 app:layout_constraintBottom_toTopOf="@+id/ll"
                 app:layout_constraintTop_toBottomOf="@+id/tv_collectible_name" />
 
@@ -75,9 +95,11 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_weight="4"
+                    android:fontFamily="casual"
                     android:text="Collectible Tags"
-                    android:textColor="@color/white"
+                    android:textColor="@color/text_color_black"
                     android:textSize="16sp"
+                    android:textStyle="bold"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintTop_toBottomOf="@+id/tv_collectible_desc" />
 
@@ -85,10 +107,12 @@
                     android:id="@+id/tv_collectible_cond"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
+                    android:fontFamily="casual"
                     android:text="Collectible Condition"
                     android:textAlignment="textEnd"
-                    android:textColor="@color/white"
+                    android:textColor="@color/text_color_black"
                     android:textSize="16sp"
+                    android:textStyle="bold"
                     app:layout_constraintTop_toBottomOf="@+id/tv_collectible_desc" />
 
 
@@ -123,7 +147,9 @@
             app:backgroundTint="@null"
             android:background="@drawable/simple_border"
             android:text="Message Owner"
-            android:textColor="@color/white"
+            android:textColor="@color/text_color_black"
+            android:fontFamily="casual"
+            android:textStyle="bold"
             android:textSize="18sp"
             app:layout_constraintBottom_toTopOf="@+id/btn_owner_profile" />
 
@@ -135,7 +161,9 @@
             app:backgroundTint="@null"
             android:background="@drawable/simple_border"
             android:text="View Owner Profile"
-            android:textColor="@color/white"
+            android:textColor="@color/text_color_black"
+            android:fontFamily="casual"
+            android:textStyle="bold"
             android:textSize="18sp"
             app:cornerRadius="20dp"
             app:layout_constraintBottom_toBottomOf="@+id/guideline2" />

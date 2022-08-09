@@ -5,10 +5,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.collectorconnector.models.ImageMessage
-import com.example.collectorconnector.models.TextMessage
-import com.example.collectorconnector.models.TradeMessage
-import com.example.collectorconnector.models.UserInfo
+import com.example.collectorconnector.models.*
 import com.example.collectorconnector.repository.FirebaseRepository
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.QuerySnapshot
@@ -75,10 +72,14 @@ class MainViewModel : ViewModel() {
     val isTextMessageSentLiveData: LiveData<Boolean>
         get() = _isTextMessageSentLiveData
 
-    fun sendTextMessage(userId: String, otherUserId: String, textMessage: TextMessage) {
+    fun sendTextMessage(
+        thisUserInfo: UserInfo,
+        otherUserInfo: UserInfo,
+        textMessage: TextMessage
+    ) {
         viewModelScope.launch {
             _isTextMessageSentLiveData.value =
-                repository.sendTextMessageToUser(userId, otherUserId, textMessage)
+                repository.sendTextMessageToUser(thisUserInfo, otherUserInfo, textMessage)
         }
     }
 
@@ -86,10 +87,12 @@ class MainViewModel : ViewModel() {
     val isTradeMessageSentLiveData: LiveData<Boolean>
         get() = _isTradeMessageSentLiveData
 
-    fun sendTradeMessage(userId: String, otherUserId: String, tradeMessage: TradeMessage) {
+    fun sendTradeMessage(thisUserInfo: UserInfo, otherUserInfo: UserInfo, tradeMessage: TradeMessage) {
+        println("thisUserInfo = $thisUserInfo")
+        println("otherUserInfo = $otherUserInfo")
         viewModelScope.launch {
             _isTradeMessageSentLiveData.value =
-                repository.sendTradeOfferMessage(userId, otherUserId, tradeMessage)
+                repository.sendTradeOfferMessage(thisUserInfo, otherUserInfo, tradeMessage)
         }
     }
 
@@ -189,6 +192,16 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    private val _otherUserInfoLiveData = MutableLiveData<DocumentSnapshot?>()
+    val otherUserInfoLiveData: LiveData<DocumentSnapshot?>
+        get() = _otherUserInfoLiveData
+
+    fun getOtherUserInfo(uid: String) {
+        viewModelScope.launch {
+            _otherUserInfoLiveData.value = repository.getUserInfo(uid)
+        }
+    }
+
     private val _isCollectibleDeletedLiveData = MutableLiveData<Boolean>()
     val isCollectibleDeletedLiveData: LiveData<Boolean>
         get() = _isCollectibleDeletedLiveData
@@ -215,26 +228,44 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    private val _isUserRatedSuccessfully = MutableLiveData<Boolean>()
+    val isUserRatedSuccessfully: LiveData<Boolean>
+        get() = _isUserRatedSuccessfully
+
+    fun rateUser(otherUserInfo: UserInfo){
+        viewModelScope.launch {
+            _isUserRatedSuccessfully.value = repository.updateUserInfo(otherUserInfo)
+        }
+    }
+
     private val _isImageMessageSentLiveData = MutableLiveData<Boolean>()
     val isImageMessageSentLiveData: LiveData<Boolean>
         get() = _isImageMessageSentLiveData
 
     fun sendImageMessage(
-        userId: String,
-        otherUserId: String,
+        thisUserInfo: UserInfo,
+        otherUserInfo: UserInfo,
         imageMessage: ImageMessage,
         filePath: Uri
     ) {
+        println("thisUserInfo = $thisUserInfo")
+        println("otherUserInfo = $otherUserInfo")
+        println(imageMessage)
         viewModelScope.launch {
             _isImageMessageSentLiveData.value =
-                repository.sendImageMessageToUser(userId, otherUserId, imageMessage, filePath)
+                repository.sendImageMessageToUser(thisUserInfo, otherUserInfo, imageMessage, filePath)
         }
     }
 
-    // because viewmodel survives fragment, it still holds data from looking at another convo.
-    // So, need to clear that out everytime this fragment is opened
-    fun clearMessagesWhenSwitchingConversations() {
-        if (_messagesLiveData.value != null)
-            _messagesLiveData.value!!.clear()
+    private val _isCollectibleUpdatedLiveData = MutableLiveData<Boolean>()
+    val isCollectibleUpdatedLiveData: LiveData<Boolean>
+        get() = _isCollectibleUpdatedLiveData
+
+
+    fun updateCollectible(collectible: Collectible) {
+        viewModelScope.launch {
+            _isCollectibleUpdatedLiveData.value = repository.updateCollectible(collectible)
+        }
+
     }
 }

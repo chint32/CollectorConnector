@@ -26,18 +26,35 @@ import kotlin.collections.ArrayList
 
 object FirebaseRepository {
 
-    suspend fun getCollectibleCategories(): DocumentSnapshot? {
+
+    // update collectible
+    suspend fun updateCollectible(collectible: Collectible): Boolean {
         return try {
-            Firebase.firestore.collection("app_data").document("collectible_categories")
-                .get().await()
+            // Create file metadata including the content type
+            var metadata = storageMetadata {
+                contentType = "image/jpg"
+                setCustomMetadata("name", collectible.name)
+                setCustomMetadata("desc", collectible.description)
+                setCustomMetadata("cond", collectible.condition)
+                setCustomMetadata("tags", collectible.tags.toString()
+                    .replace("[", "").replace("]", ""))
+                setCustomMetadata("views", collectible.timesViewed)
+                setCustomMetadata("ownerId", collectible.ownerId)
+            }
+
+            FirebaseStorage.getInstance().reference.child("users").child(collectible.ownerId)
+                .child("collectibles").child(collectible.uid).updateMetadata(metadata)
+                .await()
+
+            true
         } catch (e: Exception) {
-            null
+            false
         }
     }
 
-    suspend fun getStatesAndCities(): DocumentSnapshot? {
+    suspend fun getCollectibleCategories(): DocumentSnapshot? {
         return try {
-            Firebase.firestore.collection("app_data").document("locations")
+            Firebase.firestore.collection("app_data").document("collectible_categories")
                 .get().await()
         } catch (e: Exception) {
             null
@@ -113,14 +130,6 @@ object FirebaseRepository {
         }
     }
 
-//    suspend fun getProfileImgUrl(userId: String): String?{
-//        return try {
-//            FirebaseStorage.getInstance().reference.child("users").child(userId)
-//                .child("profile_img").child("profile_img").downloadUrl.await().toString()
-//        } catch (e: Exception) {
-//            null
-//        }
-//    }
 
     // add user profile image
     suspend fun addProfileImg(
@@ -170,28 +179,32 @@ object FirebaseRepository {
 
     // send textMessage to other user
     suspend fun sendTextMessageToUser(
-        userId: String,
-        otherUserId: String,
+        thisUserInfo: UserInfo,
+        otherUserInfo: UserInfo,
         textMessage: TextMessage
     ): Boolean {
         return try {
-            val conversation = Conversation(
-                otherUserId, null, null,textMessage.text, textMessage.time
+            var conversation = Conversation(
+                otherUserInfo.uid, otherUserInfo.screenName, otherUserInfo.profileImgUrl,textMessage.text, textMessage.time
             )
 
-            FirebaseFirestore.getInstance().collection("users").document(userId)
-                .collection("conversations").document(otherUserId).set(conversation)
+            FirebaseFirestore.getInstance().collection("users").document(thisUserInfo.uid)
+                .collection("conversations").document(otherUserInfo.uid).set(conversation)
 
-            FirebaseFirestore.getInstance().collection("users").document(otherUserId)
-                .collection("conversations").document(userId)
+            FirebaseFirestore.getInstance().collection("users").document(otherUserInfo.uid)
+                .collection("conversations").document(thisUserInfo.uid)
                 .collection("messages").document(textMessage.messageId)
                 .set(textMessage).await()
 
-            FirebaseFirestore.getInstance().collection("users").document(otherUserId)
-                .collection("conversations").document(userId).set(conversation)
+            conversation = Conversation(
+                thisUserInfo.uid, thisUserInfo.screenName, thisUserInfo.profileImgUrl, textMessage.text, textMessage.time
+            )
 
-            FirebaseFirestore.getInstance().collection("users").document(userId)
-                .collection("conversations").document(otherUserId)
+            FirebaseFirestore.getInstance().collection("users").document(otherUserInfo.uid)
+                .collection("conversations").document(thisUserInfo.uid).set(conversation)
+
+            FirebaseFirestore.getInstance().collection("users").document(thisUserInfo.uid)
+                .collection("conversations").document(otherUserInfo.uid)
                 .collection("messages").document(textMessage.messageId)
                 .set(textMessage).await()
 
@@ -204,56 +217,57 @@ object FirebaseRepository {
 
     // send textMessage to other user
     suspend fun sendImageMessageToUser(
-        userId: String,
-        otherUserId: String,
+        thisUserInfo: UserInfo,
+        otherUserInfo: UserInfo,
         imageMessage: ImageMessage,
         uri: Uri
     ): Boolean {
         return try {
-            val conversation = Conversation(
-                otherUserId, null, null, "image", imageMessage.time
+            var conversation = Conversation(
+                otherUserInfo.uid, otherUserInfo.screenName, otherUserInfo.profileImgUrl, "image", imageMessage.time
             )
 
             var metadata = storageMetadata {
                 contentType = "image/jpg"
-                setCustomMetadata("senderId", userId)
-                setCustomMetadata("receiverId", otherUserId)
+                setCustomMetadata("senderId", thisUserInfo.uid)
+                setCustomMetadata("receiverId", otherUserInfo.uid)
                 setCustomMetadata("time", imageMessage.time)
             }
 
 
-
             //update conversation item on firestore for user 1
-            FirebaseFirestore.getInstance().collection("users").document(userId)
-                .collection("conversations").document(otherUserId).set(conversation)
+            FirebaseFirestore.getInstance().collection("users").document(thisUserInfo.uid)
+                .collection("conversations").document(otherUserInfo.uid).set(conversation)
 
             //update image messages on cloud storage for user 1
-            FirebaseStorage.getInstance().reference.child("users").child(userId)
-                .child("conversations").child(otherUserId).child("image_messages")
+            FirebaseStorage.getInstance().reference.child("users").child(thisUserInfo.uid)
+                .child("conversations").child(otherUserInfo.uid).child("image_messages")
                 .child(imageMessage.messageId).putFile(uri, metadata).await()
 
-
+            conversation = Conversation(
+                thisUserInfo.uid, thisUserInfo.screenName, thisUserInfo.profileImgUrl, "image", imageMessage.time
+            )
 
             //update conversation doc for user 2
-            FirebaseFirestore.getInstance().collection("users").document(otherUserId)
-                .collection("conversations").document(userId).set(conversation)
+            FirebaseFirestore.getInstance().collection("users").document(otherUserInfo.uid)
+                .collection("conversations").document(thisUserInfo.uid).set(conversation)
 
             //update image messages on cloud storage for user 2
-            FirebaseStorage.getInstance().reference.child("users").child(otherUserId)
-                .child("conversations").child(userId).child("image_messages")
+            FirebaseStorage.getInstance().reference.child("users").child(otherUserInfo.uid)
+                .child("conversations").child(thisUserInfo.uid).child("image_messages")
                 .child(imageMessage.messageId).putFile(uri, metadata).await()
 
             imageMessage.image = null
 
             // update messages on firestore for user 1
-            FirebaseFirestore.getInstance().collection("users").document(userId)
-                .collection("conversations").document(otherUserId)
+            FirebaseFirestore.getInstance().collection("users").document(thisUserInfo.uid)
+                .collection("conversations").document(otherUserInfo.uid)
                 .collection("messages").document(imageMessage.messageId)
                 .set(imageMessage)
 
             // update messages on firestore for user 2
-            FirebaseFirestore.getInstance().collection("users").document(otherUserId)
-                .collection("conversations").document(userId)
+            FirebaseFirestore.getInstance().collection("users").document(otherUserInfo.uid)
+                .collection("conversations").document(thisUserInfo.uid)
                 .collection("messages").document(imageMessage.messageId)
                 .set(imageMessage)
 
@@ -265,8 +279,8 @@ object FirebaseRepository {
     }
 
     suspend fun sendTradeOfferMessage(
-        userId: String,
-        otherUserId: String,
+        thisUserInfo: UserInfo,
+        otherUserInfo: UserInfo,
         tradeMessage: TradeMessage
     ): Boolean {
         return try {
@@ -279,15 +293,15 @@ object FirebaseRepository {
                     setCustomMetadata("collectible_id", tradeMessage.trade.senderCollectibles[i].uid)
                 }
                 // update cloud storage where trade collectible images are stored
-                FirebaseStorage.getInstance().reference.child("users").child(userId)
-                    .child("conversations").child(otherUserId).child("trade_offers")
+                FirebaseStorage.getInstance().reference.child("users").child(thisUserInfo.uid)
+                    .child("conversations").child(otherUserInfo.uid).child("trade_offers")
                     .child(tradeMessage.messageId).child("sender").child(UUID.randomUUID().toString())
                     .putBytes(tradeMessage.trade.senderCollectibles[i].imageByteArray!!, metadata)
                     .await()
 
                 // update cloud storage where trade collectible images are stored
-                FirebaseStorage.getInstance().reference.child("users").child(userId)
-                    .child("conversations").child(otherUserId).child("trade_offers")
+                FirebaseStorage.getInstance().reference.child("users").child(thisUserInfo.uid)
+                    .child("conversations").child(otherUserInfo.uid).child("trade_offers")
                     .child(tradeMessage.messageId).child("receiver").child(UUID.randomUUID().toString())
                     .putBytes(tradeMessage.trade.receiverCollectibles[i].imageByteArray!!, metadata)
                     .await()
@@ -302,15 +316,15 @@ object FirebaseRepository {
                     setCustomMetadata("collectible_id", tradeMessage.trade.receiverCollectibles[i].uid)
                 }
                 // update cloud storage where trade collectible images are stored
-                FirebaseStorage.getInstance().reference.child("users").child(otherUserId)
-                    .child("conversations").child(userId).child("trade_offers")
+                FirebaseStorage.getInstance().reference.child("users").child(otherUserInfo.uid)
+                    .child("conversations").child(thisUserInfo.uid).child("trade_offers")
                     .child(tradeMessage.messageId).child("receiver").child(UUID.randomUUID().toString())
                     .putBytes(tradeMessage.trade.receiverCollectibles[i].imageByteArray!!, metadata)
                     .await()
 
                 // update cloud storage where trade collectible images are stored
-                FirebaseStorage.getInstance().reference.child("users").child(otherUserId)
-                    .child("conversations").child(userId).child("trade_offers")
+                FirebaseStorage.getInstance().reference.child("users").child(otherUserInfo.uid)
+                    .child("conversations").child(thisUserInfo.uid).child("trade_offers")
                     .child(tradeMessage.messageId).child("sender").child(UUID.randomUUID().toString())
                     .putBytes(tradeMessage.trade.senderCollectibles[i].imageByteArray!!, metadata)
                     .await()
@@ -324,25 +338,29 @@ object FirebaseRepository {
 
 
             // update last conversation last message
-            val conversation = Conversation(
-                otherUserId, null, null,"Trade Offer", tradeMessage.time
+            var conversation = Conversation(
+                otherUserInfo.uid, otherUserInfo.screenName, otherUserInfo.profileImgUrl,"Trade Offer", tradeMessage.time
             )
 
-            FirebaseFirestore.getInstance().collection("users").document(userId)
-                .collection("conversations").document(otherUserId).set(conversation)
+            FirebaseFirestore.getInstance().collection("users").document(thisUserInfo.uid)
+                .collection("conversations").document(otherUserInfo.uid).set(conversation)
 
-            FirebaseFirestore.getInstance().collection("users").document(otherUserId)
-                .collection("conversations").document(userId).set(conversation)
+            conversation = Conversation(
+                thisUserInfo.uid, thisUserInfo.screenName, thisUserInfo.profileImgUrl,"Trade Offer", tradeMessage.time
+            )
+
+            FirebaseFirestore.getInstance().collection("users").document(otherUserInfo.uid)
+                .collection("conversations").document(thisUserInfo.uid).set(conversation)
 
 
             // update messages
-            FirebaseFirestore.getInstance().collection("users").document(otherUserId)
-                .collection("conversations").document(userId)
+            FirebaseFirestore.getInstance().collection("users").document(otherUserInfo.uid)
+                .collection("conversations").document(thisUserInfo.uid)
                 .collection("messages").document(tradeMessage.messageId)
                 .set(tradeMessage).await()
 
-            FirebaseFirestore.getInstance().collection("users").document(userId)
-                .collection("conversations").document(otherUserId)
+            FirebaseFirestore.getInstance().collection("users").document(thisUserInfo.uid)
+                .collection("conversations").document(otherUserInfo.uid)
                 .collection("messages").document(tradeMessage.messageId)
                 .set(tradeMessage).await()
             true

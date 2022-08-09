@@ -4,6 +4,7 @@
     <option name="filePathToZoomLevelMap">
       <map>
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable-v24/card_background_gradient.xml" value="0.1935" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable-v24/collectibles_border.xml" value="0.151" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable-v24/ic_baseline_home_24_blue.xml" value="0.2685" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable-v24/ic_baseline_home_28.xml" value="0.2685" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable-v24/ic_baseline_message_24_blue.xml" value="0.2685" />
@@ -15,25 +16,37 @@
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable-v24/search_selector.xml" value="0.2685" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable-v24/simple_border.xml" value="0.108" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable-v24/simple_border_blue.xml" value="0.108" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable-v24/simple_border_disabled.xml" value="0.151" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable-v24/spinner_gradient.xml" value="0.152" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/background_gradient.xml" value="0.1935" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/button.xml" value="0.151" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/collectibles_border_large.xml" value="0.185" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/dialog_bg.xml" value="0.1185" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/dialog_bg_gradient.xml" value="0.1185" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/gradient.xml" value="0.151" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/home_selector.xml" value="0.2685" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_add_24.xml" value="0.148" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_arrow_drop_down_24.xml" value="0.1165" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_cloud_off_24.xml" value="0.124" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_favorite_24.xml" value="0.1165" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_favorite_border_24.xml" value="0.1165" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_home_24.xml" value="0.1935" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_library_add_check_24.xml" value="0.151" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_message_24.xml" value="0.2685" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_person_24.xml" value="0.1" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_play_arrow_24.xml" value="0.2685" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_search_24.xml" value="0.167" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_star_24.xml" value="0.197" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_star_outline_24.xml" value="0.197" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/message_border.xml" value="0.185" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/simple_border.xml" value="0.2685" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/spinner_background.xml" value="0.2685" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/thin_white_border.xml" value="0.1365" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/activity_edit_profile.xml" value="0.18541666666666667" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/activity_login.xml" value="0.2421875" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/activity_main.xml" value="0.2" />
-        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/activity_splash.xml" value="0.3625" />
-        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/collectibles_list_item.xml" value="0.4" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/activity_splash.xml" value="0.2" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/collectibles_list_item.xml" value="0.6" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/conversations_list_item.xml" value="0.3625" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/dialog_edit_loc.xml" value="0.2" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/dialog_rate_user.xml" value="0.2" />
@@ -41,22 +54,25 @@
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/dialog_trade_offer.xml" value="0.264" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_add_collectible.xml" value="0.264" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_collectible_details.xml" value="0.2" />
-        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_conversations.xml" value="0.264" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_conversations.xml" value="0.23859649122807017" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_displayed_collectibles.xml" value="0.264" />
-        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_edit_collectibles.xml" value="0.18541666666666667" />
-        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_edit_profile.xml" value="0.264" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_edit_collectibles.xml" value="0.264" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_edit_profile.xml" value="0.2" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_favorites.xml" value="0.264" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_home.xml" value="0.264" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_login.xml" value="0.2" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_message.xml" value="0.264" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_messages.xml" value="0.264" />
-        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_profile.xml" value="0.4" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_profile.xml" value="0.16" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_questionnaire.xml" value="0.2421875" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_registration.xml" value="0.2421875" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_search.xml" value="0.2" />
-        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/message_list_item.xml" value="0.5378670788253478" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/message_list_item.xml" value="0.264" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/spinner_item.xml" value="0.3625" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/test_list_item.xml" value="0.19583333333333333" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/menu/bottom_nav_menu.xml" value="0.264" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/menu/edit_menu.xml" value="0.2453125" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/menu/main_menu.xml" value="0.2453125" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/menu/options_menu.xml" value="0.2421875" />
       </map>
     </option>

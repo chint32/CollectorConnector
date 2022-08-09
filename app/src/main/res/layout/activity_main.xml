@@ -13,8 +13,25 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".main.MainActivity"
-    android:background="@drawable/bg_abstract_dark">
+    android:background="@drawable/background_gradient">
 
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:paddingTop="4dp"
+        android:background="@color/pink"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/custom_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Collector Connector"
+            android:textColor="#FFFFFF"
+            style="@style/titleFontStyle" />
+
+    </androidx.appcompat.widget.Toolbar>
 
 
     <fragment
@@ -27,41 +44,10 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:navGraph="@navigation/main_nav"/>
-
-    <ImageView
-        android:id="@+id/blue_acct_1"
-        android:layout_width="800dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
-        android:src="@drawable/pink_accent_1"
-        android:scaleY=".5"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/bottomNavigationView" />
+        app:layout_constraintTop_toBottomOf="@+id/toolbar"
+        app:navGraph="@navigation/main_nav" />
 
 
-    <ImageView
-        android:id="@+id/blue_acct_2"
-        android:layout_width="800dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
-        android:scaleY=".4"
-        android:src="@drawable/pink_accent_2"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/bottomNavigationView" />
-
-    <ImageView
-        android:id="@+id/blue_acct_3"
-        android:layout_width="800dp"
-        android:layout_height="wrap_content"
-        android:scaleY=".8"
-        android:src="@drawable/pink_accent_3"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/bottomNavigationView" />
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigationView"
@@ -70,8 +56,8 @@
         app:labelVisibilityMode="labeled"
         app:itemIconSize="36dp"
         android:scaleType="center"
-        app:itemTextAppearanceActive="@style/bottomNav.Active"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:itemTextAppearanceActive="@style/BottomNavigationViewTextStyle"
+        app:itemTextAppearanceInactive="@style/BottomNavigationViewTextStyle"        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"

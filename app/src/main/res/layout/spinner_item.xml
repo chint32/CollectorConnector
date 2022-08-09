@@ -2,11 +2,12 @@
 
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/spinner_data"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:textAlignment="center"
-    android:background="#6E1B4B"
-    android:textColor="@color/white"
+    android:background="@color/offwhite"
+    android:textColor="@color/text_color_black"
     android:textSize="16sp"
+    android:fontFamily="casual"
+    android:textStyle="bold"
     app:layout_constraintTop_toTopOf="parent" />

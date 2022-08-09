@@ -2,7 +2,6 @@
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/nav"
     app:startDestination="@id/homeFragment">
 
     <fragment
@@ -16,6 +15,9 @@
         <argument
             android:name="userId"
             app:argType="string" />
+        <action
+            android:id="@+id/action_profileFragment_to_favoritesFragment"
+            app:destination="@id/favoritesFragment" />
     </fragment>
     <fragment
         android:id="@+id/homeFragment"
@@ -58,6 +60,14 @@
         <action
             android:id="@+id/action_messageFragment_self"
             app:destination="@id/messageFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/favoritesFragment"
+        android:name="com.example.collectorconnector.main.FavoritesFragment"
+        android:label="FavoritesFragment" >
+        <action
+            android:id="@+id/action_favoritesFragment_to_collectibleDetailsFragment"
+            app:destination="@id/collectibleDetailsFragment" />
     </fragment>
 
 </navigation>

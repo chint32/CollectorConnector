@@ -12,10 +12,29 @@
         android:layout_height="match_parent"
         android:background="#000">
 
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/pink"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <TextView
+                android:id="@+id/custom_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:text="Collector Connector"
+                android:textColor="#FFFFFF"
+                style="@style/titleFontStyle" />
+
+        </androidx.appcompat.widget.Toolbar>
+
         <com.airbnb.lottie.LottieAnimationView
             android:id="@+id/splash_anim"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            app:layout_constraintTop_toTopOf="parent"
             app:lottie_autoPlay="true"
             app:lottie_fileName="data.json"
             app:lottie_loop="false" />

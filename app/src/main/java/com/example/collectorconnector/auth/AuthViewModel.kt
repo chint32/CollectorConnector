@@ -15,16 +15,6 @@ import kotlinx.coroutines.launch
 class AuthViewModel : ViewModel() {
     private val repository: FirebaseRepository = FirebaseRepository
 
-    private val _statesCitiesLiveData = MutableLiveData<DocumentSnapshot?>()
-    val statesCitiesLiveData: LiveData<DocumentSnapshot?>
-        get() = _statesCitiesLiveData
-
-    fun getCitiesAndStates(){
-        viewModelScope.launch {
-            _statesCitiesLiveData.value = repository.getStatesAndCities()
-        }
-    }
-
     private val _colelctibleCategoriesLiveData = MutableLiveData<DocumentSnapshot?>()
     val collectibleCategoriesLiveData: LiveData<DocumentSnapshot?>
         get() = _colelctibleCategoriesLiveData

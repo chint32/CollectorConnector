@@ -1,17 +1,25 @@
 package com.example.collectorconnector.edit_profile
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.DialogInterface
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.location.Geocoder
+import android.location.Location
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -21,22 +29,29 @@ import com.bumptech.glide.Glide
 import com.example.collectorconnector.R
 import com.example.collectorconnector.databinding.FragmentEditProfileBinding
 import com.example.collectorconnector.main.MainActivity
+import com.example.collectorconnector.models.Address
 import com.example.collectorconnector.models.UserInfo
 import com.example.collectorconnector.util.Constants.PICK_IMAGE_REQUEST
+import com.example.collectorconnector.util.Constants.REQUEST_LOCATION_PERMISSION
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.auth.FirebaseAuth
 import java.io.IOException
+import java.util.*
+import kotlin.collections.ArrayList
 
 class EditProfileFragment : Fragment() {
 
     private lateinit var binding: FragmentEditProfileBinding
-    private var cityStatesList = ArrayList<Pair<String, String>>()
-    private var statesList = ArrayList<String>()
-    private val citiesList = ArrayList<String>()
-    lateinit var tagsArray: Array<String?>
-    var tagsList: ArrayList<Int> = ArrayList()
-    private var myTags = ArrayList<String>()
-    private var selectedState = ""
-    private var selectedCity = ""
+    private lateinit var mfusedLocationClient: FusedLocationProviderClient
+    private var latitude = 0.0
+    private var longitude = 0.0
+    private var searchDistance = 0
+
+    private lateinit var tagsArray: Array<String?>
+    private var tagsList: ArrayList<Int> = ArrayList()
+    private val finalTags = ArrayList<String>()
+
 
     // Uri indicates, where the image will be picked from
     private var filePath: Uri? = null
@@ -54,23 +69,30 @@ class EditProfileFragment : Fragment() {
             DataBindingUtil.inflate(inflater, R.layout.fragment_edit_profile, container, false)
 
         val activity = (requireActivity() as EditProfileActivity)
-
-        statesList = activity.intent.extras!!.get("states") as ArrayList<String>
-        cityStatesList =
-            activity.intent.extras!!.get("cities_states") as ArrayList<Pair<String, String>>
         tagsArray = activity.intent.extras!!.get("categories") as Array<String?>
 
-        val statesAdapter =
-            ArrayAdapter(requireContext(), R.layout.spinner_item, statesList)
-        binding.stateSpinner.adapter = statesAdapter
-
-        val builder: AlertDialog.Builder = AlertDialog.Builder(requireContext())
-
         userInfo = activity.intent.extras!!.get("user_info") as UserInfo
+        val selectedTags = BooleanArray(tagsArray.size)
+        // initially check the tags the user is interested in
+        for (i in selectedTags.indices) {
+            selectedTags[i] = false
+            for(interest in userInfo.interests) {
+                if(interest == tagsArray[i]) selectedTags[i] = true
+            }
+        }
         binding.etScreenName.setText(userInfo.screenName)
-        binding.stateSpinner.setSelection(statesList.indexOf(userInfo.state))
-        binding.citySpinner.setSelection(citiesList.indexOf(userInfo.city))
-        binding.selectTagsTv.text = userInfo.tags.toString()
+        binding.tvSearchDistance.text = "Search Distance: ${userInfo.searchDistance} mi"
+        binding.selectTagsTv.text = userInfo.interests.toString()
+        binding.addressLine1.text = userInfo.addressLine1
+        binding.searchTitle.text = userInfo.addressLine1
+        binding.addressLine2.text = userInfo.addressLine2
+        binding.city.text = userInfo.city
+        binding.state.text = userInfo.state
+        binding.zip.text = userInfo.zip
+        binding.sliderSearchDistance.value = userInfo.searchDistance.toFloat()
+        latitude = userInfo.latitude
+        longitude = userInfo.longitude
+        searchDistance = userInfo.searchDistance
 
 
         Glide.with(requireContext())
@@ -79,7 +101,6 @@ class EditProfileFragment : Fragment() {
             .circleCrop()
             .into(binding.profilePic)
 
-        setSpinnerListeners()
 
         //back to MainActivity should refresh it. So, create new MainActivity here and open it.
         requireActivity().onBackPressedDispatcher.addCallback(
@@ -118,12 +139,25 @@ class EditProfileFragment : Fragment() {
 
         })
 
+        val builder: AlertDialog.Builder = AlertDialog.Builder(requireContext())
         binding.selectTagsTv.setOnClickListener(View.OnClickListener { // Initialize alert dialog
-            buildSelectTagsDialog(builder)
+            buildSelectTagsDialog(builder, tagsArray, selectedTags)
         })
 
+        binding.searchTitle.setOnClickListener {
+            if (binding.formLayout.visibility == View.GONE) {
+                binding.formLayout.visibility = View.VISIBLE
+                binding.cardView.visibility = View.GONE
+                binding.searchTitle.text = binding.addressLine1.text
+            }
+            else {
+                binding.formLayout.visibility = View.GONE
+                binding.cardView.visibility = View.VISIBLE
+            }
+        }
+
         binding.btnSubmitProfile.setOnClickListener {
-            loadUserInfoIntoModelAndSendUpdate(viewModel)
+            loadUserInfoIntoModelAndSendUpdate(viewModel, selectedTags)
         }
 
         binding.cardView.setOnClickListener {
@@ -132,6 +166,11 @@ class EditProfileFragment : Fragment() {
 
         binding.editCollectiblesBtn.setOnClickListener {
             findNavController().navigate(EditProfileFragmentDirections.actionEditProfileFragmentToDisplayedCollectiblesFragment())
+        }
+
+        binding.sliderSearchDistance.addOnChangeListener { slider, value, fromUser ->
+            searchDistance = value.toInt()
+            binding.tvSearchDistance.text = "Search Distance: $searchDistance mi"
         }
 
         return binding.root
@@ -193,23 +232,15 @@ class EditProfileFragment : Fragment() {
         )
     }
 
-    private fun loadUserInfoIntoModelAndSendUpdate(viewModel: EditViewModel) {
+    private fun loadUserInfoIntoModelAndSendUpdate(viewModel: EditViewModel, selectedTags: BooleanArray) {
 
-        var selectedTags = BooleanArray(myTags.size)
-        // initially all tags are unchecked in select tags dialog
-        for (i in selectedTags.indices) selectedTags[i] = false
+        for(i in selectedTags.indices)
+            if(selectedTags[i]) finalTags.add(tagsArray[i]!!)
 
-        val finalTags = ArrayList<String>()
-        for (i in myTags.indices) {
-            if (selectedTags[i]) finalTags.add(myTags[i])
-        }
+        for(value in finalTags)println(value)
 
         if (binding.etScreenName.text.isNullOrEmpty()) {
             Toast.makeText(requireContext(), "Screen Name must not be empty", Toast.LENGTH_SHORT)
-                .show()
-            return
-        } else if (filePath == null) {
-            Toast.makeText(requireContext(), "Profile image must not be empty", Toast.LENGTH_SHORT)
                 .show()
             return
         } else if (finalTags.isEmpty()) {
@@ -223,25 +254,123 @@ class EditProfileFragment : Fragment() {
         userInfo = UserInfo(
             FirebaseAuth.getInstance().currentUser!!.uid,
             binding.etScreenName.text.toString(),
-            selectedCity,
-            selectedState,
-            finalTags
+            latitude,
+            longitude,
+            binding.addressLine1.text.toString(),
+            binding.addressLine2.text.toString(),
+            binding.city.text.toString(),
+            binding.state.text.toString(),
+            binding.zip.text.toString(),
+            searchDistance,
+            finalTags,
+            userInfo.totalRatingStars,
+            userInfo.totalRates,
+            userInfo.rating,
+            userInfo.profileImgUrl,
+            userInfo.favoriteCollectibles
         )
 
-        viewModel.uploadProfileImg(userInfo.uid, filePath!!)
+
+
+        if(filePath == null)
+            viewModel.updateUserInfo(userInfo)
+        else
+            viewModel.uploadProfileImg(userInfo.uid, filePath!!)
+
+
+
+
     }
 
-    private fun buildSelectTagsDialog(builder: AlertDialog.Builder) {
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        // Check if location permissions are granted and if so enable the
+        // location data layer.
+        if (requestCode == REQUEST_LOCATION_PERMISSION) {
+            if (grantResults.size > 0 && (grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
+                getLocation()
+            }
+        }
+    }
+
+    private fun checkLocationPermissions(): Boolean {
+        return if (isPermissionGranted()) {
+            true
+        } else {
+            ActivityCompat.requestPermissions(
+                requireActivity(),
+                arrayOf<String>(Manifest.permission.ACCESS_FINE_LOCATION),
+                REQUEST_LOCATION_PERMISSION
+            )
+            false
+        }
+    }
+
+    private fun isPermissionGranted(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            requireContext(),
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) === PackageManager.PERMISSION_GRANTED
+    }
+
+
+    @SuppressLint("MissingPermission")
+    private fun getLocation() {
+        if (isPermissionGranted()) {
+            if (checkLocationPermissions()) {
+                mfusedLocationClient.lastLocation.addOnCompleteListener(
+                    OnCompleteListener<Location?> { task ->
+                        val location = task.result!!
+                        latitude = location.latitude
+                        longitude = location.longitude
+                        val address = geoCodeLocation(location)
+                        binding.addressLine1.text =
+                            address.line2 + " " + address.line1
+                        binding.city.text = address.city
+                        binding.zip.text = address.zip
+                        binding.state.text = address.state
+
+                    }
+                )
+            } else {
+                Toast.makeText(requireContext(), "Turn on location", Toast.LENGTH_LONG).show()
+
+                val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                startActivity(intent)
+            }
+        } else {
+            ActivityCompat.requestPermissions(
+                requireActivity(),
+                arrayOf<String>(Manifest.permission.ACCESS_FINE_LOCATION),
+                REQUEST_LOCATION_PERMISSION
+            )
+        }
+    }
+
+    private fun geoCodeLocation(location: Location): Address {
+        val geocoder = Geocoder(context, Locale.getDefault())
+        return geocoder.getFromLocation(location.latitude, location.longitude, 1)
+            .map { address ->
+                Address(
+                    address.thoroughfare,
+                    address.subThoroughfare,
+                    address.locality,
+                    address.adminArea,
+                    address.postalCode
+                )
+            }
+            .first()
+    }
+
+    private fun buildSelectTagsDialog(builder: AlertDialog.Builder, tags: Array<String?>, selectedTags:BooleanArray) {
 
         builder.setTitle("Select Categories")
         builder.setCancelable(false)
-
-        val tags =
-            (requireActivity() as EditProfileActivity).intent.extras!!.get("categories") as Array<String?>
-
-        val selectedTags = BooleanArray(tags.size)
-        // initially all tags are unchecked
-        for (i in selectedTags.indices) selectedTags[i] = false
 
         builder.setMultiChoiceItems(tags, selectedTags,
             DialogInterface.OnMultiChoiceClickListener { dialogInterface, i, b ->
@@ -262,24 +391,31 @@ class EditProfileFragment : Fragment() {
         builder.setPositiveButton("OK",
             DialogInterface.OnClickListener { dialogInterface, i -> // Initialize string builder
                 val stringBuilder = StringBuilder()
+                var finalString = ""
 
-                // use for loop
-                for (j in 0 until tagsList.size) {
-                    // concat array value
-                    stringBuilder.append(tags.get(tagsList.get(j)))
-                    // check condition
-                    if (j != tagsList.size - 1) {
-                        // When j value  not equal
-                        // to lang list size - 1
-                        // add comma
-                        stringBuilder.append(", ")
+                if(tagsList.size > 0) {
+                    // use for loop
+                    for (j in 0 until tagsList.size) {
+                        // concat array value
+                        stringBuilder.append(tags.get(tagsList.get(j)))
+                        // check condition
+                        if (j != tagsList.size - 1) {
+                            // When j value  not equal
+                            // to lang list size - 1
+                            // add comma
+                            stringBuilder.append(", ")
+                        }
                     }
+                    finalString = stringBuilder.toString()
+                } else {
+                    for(k in selectedTags.indices)
+                        if(selectedTags[k]) stringBuilder.append(tagsArray[k]!! + ", ")
+                            finalString = stringBuilder.toString().substringBeforeLast(",")
                 }
 
                 dialogInterface.dismiss()
                 // set text on textView
-                myTags.add(stringBuilder.toString())
-                binding.selectTagsTv.text = stringBuilder.toString()
+                binding.selectTagsTv.text = finalString
             })
 
         builder.setNegativeButton("Cancel",
@@ -305,58 +441,11 @@ class EditProfileFragment : Fragment() {
 
     }
 
-    private fun loadCitySpinnerBasedOnState(position: Int) {
-        citiesList.clear()
-        for (cityState in cityStatesList) {
-            if (statesList[position] == cityState.first)
-                citiesList.add(cityState.second)
-
-        }
-    }
-
-    private fun setSpinnerListeners() {
-
-        binding.stateSpinner.onItemSelectedListener = object :
-            AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>,
-                view: View, position: Int, id: Long
-            ) {
-                selectedState = statesList[position]
-                loadCitySpinnerBasedOnState(position)
-
-                val citiesAdapter =
-                    ArrayAdapter(requireContext(), R.layout.spinner_item, citiesList)
-                binding.citySpinner.adapter = citiesAdapter
-            }
-
-            override fun onNothingSelected(p0: AdapterView<*>?) {
-                TODO("Not yet implemented")
-            }
-        }
-
-        binding.citySpinner.onItemSelectedListener = object :
-            AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>,
-                view: View, position: Int, id: Long
-            ) {
-                selectedCity = citiesList[position]
-            }
-
-            override fun onNothingSelected(p0: AdapterView<*>?) {
-                TODO("Not yet implemented")
-            }
-        }
-    }
-
     private fun startMainActivity( userInfo: UserInfo){
 
 
         val intent = Intent(requireContext(), MainActivity::class.java)
         intent.putExtra("user_info", userInfo)
-        intent.putExtra("states", statesList)
-        intent.putExtra("cities_states", cityStatesList)
         intent.putExtra("categories",tagsArray)
         startActivity(intent)
     }

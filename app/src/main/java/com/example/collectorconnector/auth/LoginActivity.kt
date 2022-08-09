@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
+import androidx.navigation.ui.setupActionBarWithNavController
 import com.example.collectorconnector.databinding.ActivityLoginBinding
 import com.example.collectorconnector.main.MainActivity
 import com.example.collectorconnector.models.UserInfo
@@ -20,8 +21,7 @@ class LoginActivity : AppCompatActivity() {
     val currUser = FirebaseAuth.getInstance().currentUser
     private lateinit var userInfo: UserInfo
     lateinit var tagsArray: Array<String?>
-    var cityStatesList = ArrayList<Pair<String, String>>()
-    var statesList = ArrayList<String>()
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,12 +29,13 @@ class LoginActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         tagsArray = intent.extras!!.get("categories") as Array<String?>
-        statesList = intent.extras!!.get("states") as ArrayList<String>
-        cityStatesList = intent.extras!!.get("cities_states") as ArrayList<Pair<String, String>>
 
-        supportActionBar!!.setBackgroundDrawable(ColorDrawable(Color.parseColor("#FF007F")))
+        supportActionBar!!.hide()
         viewModel.userInfoLiveData.observe(this, Observer {
-            if(!it.exists()) return@Observer
+            if(!it.exists()) {
+                Toast.makeText(this, "Error loggin in", Toast.LENGTH_SHORT).show()
+                return@Observer
+            }
 
             userInfo = it.toObject(UserInfo::class.java)!!
             Toast.makeText(this, "${userInfo.screenName} logged in", Toast.LENGTH_SHORT).show()
@@ -53,8 +54,6 @@ class LoginActivity : AppCompatActivity() {
 
         val intent = Intent(this, MainActivity::class.java)
         intent.putExtra("user_info", userInfo)
-        intent.putExtra("states", statesList)
-        intent.putExtra("cities_states", cityStatesList)
         intent.putExtra("categories",tagsArray)
         startActivity(intent)
     }

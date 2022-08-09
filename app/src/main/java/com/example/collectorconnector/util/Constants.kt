@@ -1,10 +1,6 @@
 package com.example.collectorconnector.util
 
 object Constants {
-
-    val tagsArray =
-        arrayOf("Coins", "Cards", "Stamps", "Comic Books", "Action Figures", "Vinyl Records")
-
     val MESSAGE_TYPE_TEXT = "TEXT"
     val MESSAGE_TYPE_IMAGE = "IMAGE"
     val MESSAGE_TYPE_TRADE = "TRADE"
@@ -14,6 +10,7 @@ object Constants {
     val TRADE_STATUS_ACCEPTED = "ACCEPTED"
     val TRADE_STATUS_REJECTED = "REJECTED"
 
+    val REQUEST_LOCATION_PERMISSION = 1
+    val PICK_IMAGE_REQUEST = 2
     val ONE_HUNDRED_MEGABYTE: Long = 1024 * 1024 * 100
-    val PICK_IMAGE_REQUEST = 22
 }

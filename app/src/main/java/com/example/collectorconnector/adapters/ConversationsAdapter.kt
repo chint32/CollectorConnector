@@ -53,7 +53,7 @@ class ConversationsAdapter(private val dataSet: ArrayList<Conversation>,
             .into(viewHolder.profileImg)
 
         viewHolder.lastMessageTV.text = dataSet[position].lastMessage
-        viewHolder.timeTV.text = dataSet[position].time.toString()
+        viewHolder.timeTV.text = dataSet[position].time
 
     }
 

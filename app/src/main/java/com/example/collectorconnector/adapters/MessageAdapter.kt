@@ -30,7 +30,7 @@ class MessageAdapter(
     RecyclerView.Adapter<MessageAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val cardView: CardView = view.findViewById(R.id.message_cardview)
+        val cardView: FrameLayout = view.findViewById(R.id.message_cardview)
 
         //text
         val textMessageLayout: ConstraintLayout = view.findViewById(R.id.text_message_layout)
@@ -88,9 +88,9 @@ class MessageAdapter(
             viewHolder.tradeMessageLayout.visibility = View.GONE
             viewHolder.textMessageLayout.visibility = View.VISIBLE
             viewHolder.messageTV.text = textMessage.text
-            viewHolder.timeTVtext.text = dataSet[position].time
+            viewHolder.timeTVtext.text = dataSet[position].time.substringAfter(" ")
         }
-        if (dataSet[position].type == Constants.MESSAGE_TYPE_IMAGE) {
+        else if (dataSet[position].type == Constants.MESSAGE_TYPE_IMAGE) {
             val imageMessage = dataSet[position] as ImageMessage
             viewHolder.imageMessageLayout.visibility = View.VISIBLE
             viewHolder.textMessageLayout.visibility = View.GONE
@@ -104,7 +104,7 @@ class MessageAdapter(
             )
             viewHolder.timeTVimage.text = dataSet[position].time
         }
-        if (dataSet[position].type == Constants.MESSAGE_TYPE_TRADE) {
+        else if (dataSet[position].type == Constants.MESSAGE_TYPE_TRADE) {
             val tradeMessage = dataSet[position] as TradeMessage
             viewHolder.imageMessageLayout.visibility = View.GONE
             viewHolder.textMessageLayout.visibility = View.GONE
@@ -114,6 +114,20 @@ class MessageAdapter(
             // trade details dialog is shown when trade message is clicked
             buildTradeDetailDialog()
 
+            // when user clicks on a trade message, get the collectible images for the trade
+            // and show the trade details dialog
+            viewHolder.tradeMessageLayout.setOnClickListener {
+
+                viewModel.getImagesForTradeSender(
+                    tradeMessage.senderId, tradeMessage.recipientId, tradeMessage.messageId
+                )
+                viewModel.getImagesForTradeReceiver(
+                    tradeMessage.senderId, tradeMessage.recipientId, tradeMessage.messageId
+                )
+
+                tradeDetailsDialog.show()
+            }
+
             val btnNegative = tradeDetailsDialog.findViewById<MaterialButton>(R.id.btn_cancel)
             val btnPositive = tradeDetailsDialog.findViewById<MaterialButton>(R.id.btn_confirm)
 
@@ -122,6 +136,7 @@ class MessageAdapter(
             // OPEN
             if(tradeMessage.tradeStatus == Constants.TRADE_STATUS_OPEN) {
                 if(userId == tradeMessage.senderId){
+
                     viewHolder.tradeTV.text = "You Offered A Trade To\n${tradeMessage.recipientScreenName}"
                     btnNegative.text = "Cancel Trade"
                     btnNegative.setOnClickListener {
@@ -149,7 +164,7 @@ class MessageAdapter(
                             viewModel.deleteCollectible(tradeMessage.senderId, collectible.uid)
                         for(collectible in tradeMessage.trade.receiverCollectibles)
                             viewModel.deleteCollectible(tradeMessage.recipientId, collectible.uid)
-
+                        tradeDetailsDialog.dismiss()
                     }
                 }
             }
@@ -162,6 +177,8 @@ class MessageAdapter(
                 }else {
                     viewHolder.tradeTV.text = "${tradeMessage.senderScreenName}\nHas Canceled This Trade"
                 }
+                btnNegative.text = "OK"
+                btnPositive.visibility = View.GONE
                 btnNegative.setOnClickListener{
                     tradeDetailsDialog.dismiss()
                 }
@@ -175,6 +192,8 @@ class MessageAdapter(
                 }else {
                     viewHolder.tradeTV.text = "You Rejected This Trade"
                 }
+                btnNegative.text = "OK"
+                btnPositive.visibility = View.GONE
                 btnNegative.setOnClickListener{
                     tradeDetailsDialog.dismiss()
                 }
@@ -188,25 +207,14 @@ class MessageAdapter(
                 }else {
                     viewHolder.tradeTV.text = "You Accepted This Trade"
                 }
+                btnNegative.text = "OK"
+                btnPositive.visibility = View.GONE
                 btnNegative.setOnClickListener{
                     tradeDetailsDialog.dismiss()
                 }
             }
 
-            // when user clicks on a trade message, get the collectible images for the trade
-            // and show the trade details dialog
-            viewHolder.tradeMessageLayout.setOnClickListener {
 
-                println("Trade clicked on: $tradeMessage")
-                viewModel.getImagesForTradeSender(
-                    tradeMessage.senderId, tradeMessage.recipientId, tradeMessage.messageId
-                )
-                viewModel.getImagesForTradeReceiver(
-                    tradeMessage.senderId, tradeMessage.recipientId, tradeMessage.messageId
-                )
-
-                tradeDetailsDialog.show()
-            }
         }
     }
 

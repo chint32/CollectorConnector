@@ -9,7 +9,7 @@ import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.collectorconnector.R
 
-class ImageAdapter(private val imageList: ArrayList<ByteArray>, private val showCheckBoxes: Boolean) :
+class ImageAdapter(private val imageList: ArrayList<ByteArray>) :
     RecyclerView.Adapter<ImageAdapter.ViewHolder>() {
 
     override fun onCreateViewHolder(viewGroup: ViewGroup, viewType: Int): ViewHolder {
@@ -27,10 +27,11 @@ class ImageAdapter(private val imageList: ArrayList<ByteArray>, private val show
 
         val collIV: ImageView = view.findViewById(R.id.collIV)
         val checkbox: CheckBox = view.findViewById(R.id.checkbox)
+        val ivFav: ImageView = view.findViewById(R.id.iv_favorite)
 
         init{
-            if(showCheckBoxes) checkbox.visibility = View.VISIBLE
-            else checkbox.visibility = View.GONE
+            checkbox.visibility = View.GONE
+            ivFav.visibility = View.GONE
         }
 
     }

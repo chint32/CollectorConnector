@@ -37,6 +37,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="10dp"
+            android:padding="4dp"
             android:background="@drawable/simple_border"
             android:alpha=".9"
             android:orientation="horizontal"
@@ -52,7 +53,7 @@
                 app:layout_constraintEnd_toStartOf="@+id/iv_send_trade_icon"
                 app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toStartOf="parent"
-                app:tint="@color/white" />
+                app:tint="@color/text_color_black" />
 
             <EditText
                 android:id="@+id/et_message_to_send"
@@ -60,10 +61,12 @@
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="14dp"
                 android:layout_marginBottom="8dp"
-                android:backgroundTint="@color/white"
+                android:backgroundTint="@color/text_color_black"
                 android:hint="Write your message here"
-                android:textColor="@color/white"
-                android:textColorHint="@color/offwhite"
+                android:textColor="@color/text_color_black"
+                android:textColorHint="@color/text_color_black"
+                android:fontFamily="casual"
+                android:textStyle="bold"
                 android:textSize="16sp"
                 app:layout_constraintBottom_toTopOf="@+id/iv_send_trade_icon"
                 app:layout_constraintEnd_toStartOf="@+id/iv_send_icon"
@@ -79,7 +82,7 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@+id/iv_send_trade_icon"
-                app:tint="@color/white" />
+                app:tint="@color/text_color_black" />
 
             <ImageView
                 android:id="@+id/iv_send_trade_icon"
@@ -90,7 +93,7 @@
                 app:layout_constraintEnd_toStartOf="@+id/iv_send_icon"
                 app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@+id/iv_send_image_icon"
-                app:tint="@color/white" />
+                app:tint="@color/text_color_black" />
 
 
         </androidx.constraintlayout.widget.ConstraintLayout>

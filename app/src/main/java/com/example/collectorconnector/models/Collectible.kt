@@ -10,6 +10,7 @@ data class Collectible (
     var description: String = "",
     var condition: String = "",
     var imageByteArray: ByteArray? = null,
+    var timesViewed: String = "0",
     var tags: ArrayList<String> = ArrayList(),
     val ownerId: String = ""
 ) : Parcelable

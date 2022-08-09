@@ -42,7 +42,7 @@ class RegistrationFragment : Fragment() {
 
         }
 
-        binding.tvRegHere.setOnClickListener{
+        binding.tvLoginHere.setOnClickListener{
             findNavController().navigate(RegistrationFragmentDirections.actionRegistrationFragmentToLoginFragment())
         }
 
