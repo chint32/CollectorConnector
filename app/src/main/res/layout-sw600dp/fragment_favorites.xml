@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+        <variable
+            name="viewModel"
+            type="com.example.collectorconnector.main.MainViewModel" />
+        <import type="android.view.View"/>
+
+
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideline1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_percent=".9"/>
+
+
+        <TextView
+            android:id="@+id/tv_no_results"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:elevation="2dp"
+            android:fontFamily="casual"
+            android:padding="6dp"
+            android:text="@string/you_don_t_have_any_favorites_to_display"
+            android:visibility="@{viewModel.userInfo.favoriteCollectibles.empty ? View.VISIBLE : View.GONE}"
+            android:textAlignment="center"
+            android:textColor="@color/text_color_black"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="@+id/collectibles_recycler"
+            app:layout_constraintTop_toTopOf="@id/collectibles_recycler" />
+
+        <TextView
+            android:id="@+id/textView3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="casual"
+            android:padding="6dp"
+            android:text="@string/favorite_collectibles"
+            android:textAlignment="center"
+            android:textColor="@color/text_color_black"
+            android:textSize="38sp"
+            android:textStyle="bold"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/collectibles_recycler"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginHorizontal="16dp"
+            android:background="@drawable/collectibles_border_large"
+            android:padding="12dp"
+            app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+            app:layout_constraintBottom_toTopOf="@+id/guideline1"
+            app:layout_constraintTop_toBottomOf="@+id/textView3"
+            app:layout_constraintVertical_bias="0.0"
+            app:spanCount="3"
+            app:submitCollectibles="@{viewModel.userInfo.favoriteCollectibles}"
+            tools:layout_editor_absoluteX="32dp"
+            tools:listitem="@layout/collectibles_list_item" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

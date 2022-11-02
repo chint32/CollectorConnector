@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+        <variable
+            name="viewModel"
+            type="com.example.collectorconnector.main.MainViewModel" />
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideline1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_percent=".87"/>
+
+        <TextView
+            android:id="@+id/textView9"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="casual"
+            android:layout_margin="8dp"
+            android:textAlignment="center"
+            android:maxLines="1"
+            android:text="@string/conversation_with"
+            android:textColor="@color/text_color_black"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageView
+            android:id="@+id/iv_border"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
+            android:layout_margin="4dp"
+            android:src="@drawable/near_far_border"
+            app:layout_constraintTop_toBottomOf="@+id/textView9"
+            android:contentDescription="@string/border_between_title_and_body" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/messages_recycler"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_margin="8dp"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            app:layout_constraintBottom_toTopOf="@+id/constraintLayout"
+            app:layout_constraintTop_toBottomOf="@+id/iv_border"
+            app:stackFromEnd="true"
+            app:submitMessageList="@{viewModel.messagesLiveData}"
+            tools:listitem="@layout/message_list_item" />
+
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/constraintLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:padding="4dp"
+            android:background="@drawable/simple_border"
+            android:alpha=".9"
+            android:orientation="horizontal"
+            app:layout_constraintBottom_toBottomOf="@+id/guideline1"
+            tools:layout_editor_absoluteX="4dp">
+
+            <ImageView
+                android:id="@+id/iv_send_image_icon"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:src="@drawable/ic_baseline_image_24"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/iv_send_trade_icon"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toStartOf="parent"
+                app:tint="@color/text_color_black"
+                android:contentDescription="@string/icon_send_image" />
+
+            <EditText
+                android:id="@+id/et_message_to_send"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="14dp"
+                android:layout_marginBottom="8dp"
+                android:backgroundTint="@color/text_color_black"
+                android:hint="@string/write_your_message_here"
+                android:textColor="@color/text_color_black"
+                android:textColorHint="@color/text_color_black"
+                android:fontFamily="casual"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                app:layout_constraintBottom_toTopOf="@+id/iv_send_trade_icon"
+                app:layout_constraintEnd_toStartOf="@+id/iv_send_icon"
+                app:layout_constraintStart_toEndOf="@+id/iv_send_image_icon"
+                app:layout_constraintTop_toTopOf="parent"
+                android:autofillHints="false"
+                android:inputType="text" />
+
+            <ImageView
+                android:id="@+id/iv_send_icon"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:src="@drawable/ic_baseline_send_24"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toEndOf="@+id/iv_send_trade_icon"
+                app:tint="@color/text_color_black"
+                android:contentDescription="@string/icon_send_text_message" />
+
+            <ImageView
+                android:id="@+id/iv_send_trade_icon"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:src="@drawable/ic_baseline_handshake_24"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/iv_send_icon"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toEndOf="@+id/iv_send_image_icon"
+                app:tint="@color/text_color_black"
+                android:contentDescription="@string/icon_send_trade_offer" />
+
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</layout>

@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <variable
+            name="viewModel"
+            type="com.example.collectorconnector.main.MainViewModel" />
+
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginHorizontal="10dp"
+        android:gravity="center">
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideline3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_percent=".92" />
+
+        <LinearLayout
+            android:id="@+id/linearLayout2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:elevation="2dp"
+            android:orientation="horizontal"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <EditText
+                android:id="@+id/editText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:backgroundTint="@color/text_color_black"
+                android:elevation="2dp"
+                android:fontFamily="casual"
+                android:textSize="26sp"
+                android:hint="@string/search_for_collectible_by_name"
+                android:textColor="@color/text_color_black"
+                android:textColorHint="@color/text_color_hint"
+                app:layout_constraintBottom_toTopOf="@+id/linearLayout6"
+                app:layout_constraintEnd_toEndOf="@+id/faded_blue_layout1"
+                app:layout_constraintStart_toStartOf="@+id/faded_blue_layout1"
+                app:layout_constraintTop_toTopOf="@+id/faded_blue_layout1"
+                android:inputType="text"
+                android:autofillHints="false" />
+
+            <ImageView
+                android:id="@+id/iv_search"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginEnd="10dp"
+                android:layout_weight="5"
+                android:elevation="2dp"
+                android:src="@drawable/ic_baseline_search_24"
+                app:layout_constraintBottom_toBottomOf="@+id/editText"
+                app:layout_constraintEnd_toEndOf="@+id/faded_blue_layout1"
+                app:layout_constraintTop_toTopOf="@+id/editText"
+                app:tint="@color/text_color_black"
+                android:contentDescription="@string/search_icon" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/linearLayout6"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:elevation="2dp"
+            android:layout_marginHorizontal="20dp"
+            android:orientation="horizontal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/linearLayout2">
+
+
+            <TextView
+                android:id="@+id/select_tagsTv"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:drawablePadding="16dp"
+                android:fontFamily="casual"
+                android:gravity="center"
+                android:hint="@string/filter_by_category"
+                android:textColor="@color/text_color_black"
+                android:textColorHint="@color/text_color_hint"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                app:drawableRightCompat="@drawable/ic_baseline_arrow_drop_down_24"
+                app:drawableTint="@color/text_color_black"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/linearLayout2" />
+
+
+            <TextView
+                android:id="@+id/select_conditionsTv"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:drawablePadding="16dp"
+                android:fontFamily="casual"
+                android:gravity="center"
+                android:hint="@string/filter_by_condition"
+                android:textColor="@color/text_color_black"
+                android:textColorHint="@color/text_color_hint"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                app:drawableRightCompat="@drawable/ic_baseline_arrow_drop_down_24"
+                app:drawableTint="@color/text_color_black"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/linearLayout2" />
+
+        </LinearLayout>
+
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/collectibles_border_large"
+            android:paddingVertical="8dp"
+            android:layout_margin="12dp"
+            app:layout_constraintBottom_toTopOf="@+id/guideline3"
+            app:layout_constraintTop_toBottomOf="@+id/linearLayout6">
+
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:id="@+id/feed_recyclers_ll"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="8dp"
+                app:layout_constraintBottom_toTopOf="@+id/guideline3"
+                app:layout_constraintTop_toBottomOf="@+id/linearLayout6">
+
+
+                <TextView
+                    android:id="@+id/tv_no_results"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="casual"
+                    android:padding="16dp"
+                    android:text="@string/no_collectibles_to_display"
+                    android:textAlignment="center"
+                    android:textColor="@color/text_color_black"
+                    android:textSize="17sp"
+                    android:visibility="gone"
+                    app:layout_constraintBottom_toBottomOf="@+id/collectibles_recycler_near"
+                    app:layout_constraintTop_toBottomOf="@+id/textView4" />
+
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/collectibles_recycler_near"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+                    app:spanCount="3"
+                    app:submitCollectibles="@{viewModel.mainFeedCollectiblesNearLiveData}"
+                    tools:listitem="@layout/collectibles_list_item" />
+
+                <TextView
+                    android:id="@+id/tv_within_distance_label"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="30dp"
+                    android:fontFamily="casual"
+                    android:textStyle="bold"
+                    android:text="@string/within_search_distance"
+                    android:textAlignment="center"
+                    android:textSize="20sp"
+                    android:textColor="@color/text_color_black"
+                    android:visibility="gone"
+                    app:drawableStartCompat="@drawable/ic_baseline_arrow_upward_24"
+                    app:drawableEndCompat="@drawable/ic_baseline_arrow_upward_24" />
+
+                <ImageView
+                    android:id="@+id/iv_distance_border"
+                    android:layout_width="match_parent"
+                    android:layout_height="3dp"
+                    android:layout_marginHorizontal="8dp"
+                    android:layout_marginVertical="4dp"
+                    android:src="@drawable/near_far_border"
+                    android:visibility="gone"
+                    android:contentDescription="@string/search_distance_border" />
+
+                <TextView
+                    android:id="@+id/tv_out_of_distance_label"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="30dp"
+                    android:textSize="20sp"
+                    android:fontFamily="casual"
+                    android:textStyle="bold"
+                    android:text="@string/out_of_search_distance"
+                    android:textAlignment="center"
+                    android:textColor="@color/text_color_black"
+                    android:visibility="gone"
+                    app:drawableStartCompat="@drawable/ic_baseline_arrow_downward_24"
+                    app:drawableEndCompat="@drawable/ic_baseline_arrow_downward_24" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/collectibles_recycler_far"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+                    app:spanCount="3"
+                    app:submitCollectibles="@{viewModel.mainFeedCollectiblesFarLiveData}"
+                    tools:listitem="@layout/collectibles_list_item" />
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+        </androidx.core.widget.NestedScrollView>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</layout>
