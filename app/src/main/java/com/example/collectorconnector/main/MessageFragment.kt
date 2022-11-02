@@ -4,37 +4,36 @@ import android.app.Activity
 import android.app.Dialog
 import android.app.ProgressDialog
 import android.content.Intent
-import android.net.Uri
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.*
+import android.widget.RatingBar
+import android.widget.TextView
+import android.widget.Toast
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.collectorconnector.R
 import com.example.collectorconnector.adapters.CollectibleAdapter
-import com.example.collectorconnector.adapters.ImageAdapter
 import com.example.collectorconnector.adapters.MessageAdapter
 import com.example.collectorconnector.databinding.FragmentMessageBinding
 import com.example.collectorconnector.models.*
 import com.example.collectorconnector.util.Constants
-import com.example.collectorconnector.util.Constants.ONE_HUNDRED_MEGABYTE
 import com.example.collectorconnector.util.Constants.PICK_IMAGE_REQUEST
 import com.google.android.material.button.MaterialButton
 import java.text.SimpleDateFormat
 import java.util.*
 
 
-class MessageFragment : Fragment(), CollectibleAdapter.OnItemClickListener, CollectibleAdapter.OnFavoriteClickListener {
+class MessageFragment : Fragment(), CollectibleAdapter.OnItemClickListener,
+    CollectibleAdapter.OnFavoriteClickListener, MessageAdapter.OnItemClickListener {
 
     private lateinit var binding: FragmentMessageBinding
-    private lateinit var activity: MainActivity
     val viewModel: MainViewModel by viewModels()
 
     //in message fragment, current user is messaging other user.
@@ -42,279 +41,85 @@ class MessageFragment : Fragment(), CollectibleAdapter.OnItemClickListener, Coll
     private lateinit var otherUserId: String
     private lateinit var otherUserInfo: UserInfo
 
-    //messages that will be displayed in recyclerview
-    val messages = ArrayList<Message>()
-    private lateinit var adapter: MessageAdapter
-
-    // Uri indicates, where the image will be picked from
-    private var filePath: Uri? = null
-
     //booleans to determine which layout for trade dialog as well as which users
     //collectibles to display
     private var viewingThisUsersCollectibles = true
     private var readyToOfferTrade = false
 
-    //all collectibles in the trade
-    val collectiblesForTrade = ArrayList<Collectible>()
 
     //collectibles separated by sender/receiver
     private val thisUsersSelectedCollectiblesForTrade = ArrayList<Collectible>()
+    private val user1SelectedCollectibles = ArrayList<Collectible>()
     private val otherUsersSelectedCollectiblesForTrade = ArrayList<Collectible>()
+    private val user2SelectedCollectibles = ArrayList<Collectible>()
 
     //dialog that will be used to facilitate trade offer
-    //(picking trade collectibles, confirming trade)
+    //(picking trade collectibles, confirming trade, etc)
     private lateinit var dialog: Dialog
 
-    //collectibles shown in the trade details dialog after a trade has been offered
-    private val tradeDetailsSenderCollectibleImages = ArrayList<ByteArray>()
-    private val tradeDetailsReceiverCollectibleImages = ArrayList<ByteArray>()
-
-    //after a successful trade, user will rate the other party involved with the trade
-    private var ratingStarsGiven = 0f
+    // dialog that will be used to show trade details
+    // when user clicks on a trade message
+    private lateinit var tradeDetailsDialog: Dialog
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_message, container, false)
+        binding.lifecycleOwner = viewLifecycleOwner
+        binding.viewModel = viewModel
 
-        activity = (requireActivity() as MainActivity)
+        val activity = (requireActivity() as MainActivity)
 
+        //add back navigation arrow
         activity.binding.toolbar.navigationIcon =
             resources.getDrawable(R.drawable.ic_baseline_arrow_back_24)
         activity.binding.toolbar.setNavigationOnClickListener {
             findNavController().navigateUp()
         }
 
-        //get the other users id passed in to messagesFragment as argument
-        otherUserId = requireArguments().get("otherUserId").toString()
-        viewModel.userInfoLiveData.observe(viewLifecycleOwner) {
-            if (it == null || it.data.isNullOrEmpty()) {
-                Toast.makeText(
-                    requireContext(),
-                    "Error getting other user's info",
-                    Toast.LENGTH_SHORT
-                ).show()
-                return@observe
-            }
-            otherUserInfo = it.toObject(UserInfo::class.java) as UserInfo
-        }
-        viewModel.getUserInfo(otherUserId)
-
-        //initialize dialog used to facilitate trade
-        dialog = Dialog(requireContext())
-
-        adapter = MessageAdapter(
-            messages,
-            activity.currentUser!!.uid,
-            activity.viewModel,
-            dialog
-        )
-        binding.messagesRecycler.adapter = adapter
-
-
-        // dialog that will be used to facilitate rating users
-        val userRatingDialog = Dialog(requireContext())
-
-
-        //observe messages and handle each type of message accordingly (TEXT, IMAGE, TRADE)
-        viewModel.messagesLiveData.observe(
-            viewLifecycleOwner,
-            androidx.lifecycle.Observer {
-                if (it == null) {
-                    return@Observer
-                }
-                for (doc in it) {
-                    println(doc)
-                    val type = doc!!.get("type").toString()
-                    if (type == Constants.MESSAGE_TYPE_TEXT) {
-                        val textMessage = doc.toObject(TextMessage::class.java)!!
-                        if (!messages.contains(textMessage)) {
-                            messages.add(textMessage)
-                            adapter.notifyItemInserted(messages.indexOf(textMessage))
-                        }
-                    } else if (type == Constants.MESSAGE_TYPE_IMAGE) {
-                        // message of type IMAGE retrieved from firestore
-                        // need to get the actual image from firebase storage
-                        val imageMessage = doc.toObject(ImageMessage::class.java)!!
-                        println(imageMessage)
-
-                        //observe images for message coming from firebase storage
-                        viewModel.imageMessagesLiveData.observe(
-                            viewLifecycleOwner
-                        ) { byteArray ->
-                            if (byteArray == null) {
-                                Toast.makeText(
-                                    requireContext(),
-                                    "Error getting images for image messages",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                return@observe
-                            }
-
-                            imageMessage.image = byteArray
-                            if (!messages.contains(imageMessage)) {
-                                messages.add(imageMessage)
-                                adapter.notifyItemInserted(messages.indexOf(imageMessage))
-                            }
-                        }
-                        //make call to retrieve image from firebase storage
-                        viewModel.getImageFromImageMessage(
-                            activity.currentUser!!.uid,
-                            otherUserId,
-                            imageMessage
-                        )
-                    } else if (type == Constants.MESSAGE_TYPE_TRADE) {
-                        //message of type IMAGE retrieved from firestore.
-                        //need to get the actual image from firebase storage
-                        // this is handled in the message adapter class
-                        val tradeMessage = doc.toObject(TradeMessage::class.java) as TradeMessage
-                        if (!messages.contains(tradeMessage)) {
-                            messages.add(tradeMessage)
-                            adapter.notifyItemInserted(messages.indexOf(tradeMessage))
-                        }
-
-                    }
-                }
-            })
-
-        // make call to listen for and retrieve messages from firebase
-        viewModel.listenForMessagesFromOtherUser(activity.currentUser!!.uid, otherUserId)
-
-        //observe updating status of trade (OPEN, CLOSED, ACCEPTED, REJECTED) and if the trade
-        //was accepted, inform the current user by showing trade details dialog
-        activity.viewModel.isTradeStatusUpdatedLiveData.observe(
-            viewLifecycleOwner
-        ) { tradeMessage ->
-            if (tradeMessage == null) {
-                Toast.makeText(
-                    requireContext(),
-                    "Failed to update trade status",
-                    Toast.LENGTH_SHORT
-                ).show()
-                return@observe
-            }
-            Toast.makeText(requireContext(), "Trade status updated", Toast.LENGTH_SHORT)
-                .show()
-            dialog.dismiss()
-            if (tradeMessage.tradeStatus == Constants.TRADE_STATUS_ACCEPTED && !tradeMessage.tradeAcceptanceReceived
-                && activity.userInfo.uid != tradeMessage.senderId) {
-                dialog.show()
-                dialog.findViewById<TextView>(R.id.textView5).text = "Trade Details"
-                activity.viewModel.getImagesForTradeSender(
-                    tradeMessage.senderId,
-                    tradeMessage.recipientId,
-                    tradeMessage.messageId
-                )
-                activity.viewModel.getImagesForTradeReceiver(
-                    tradeMessage.senderId,
-                    tradeMessage.recipientId,
-                    tradeMessage.messageId
-                )
-
-                val btnCancelTrade =
-                    dialog.findViewById<MaterialButton>(R.id.btn_cancel)
-                btnCancelTrade.isEnabled = false
-                val btnOk =
-                    dialog.findViewById<MaterialButton>(R.id.btn_confirm)
-                btnOk.text = "Ok"
-                btnOk.setOnClickListener {
-                    tradeMessage.tradeAcceptanceReceived = true
-                    activity.viewModel.updateTradeAcceptanceReceived(
-                        tradeMessage.senderId,
-                        tradeMessage.recipientId,
-                        tradeMessage
-                    )
-
-                    dialog.dismiss()
-                    userRatingDialog.setContentView(R.layout.dialog_rate_user)
-
-                    userRatingDialog.setCancelable(false)
-
-                    if (userRatingDialog.getWindow() != null) {
-                        userRatingDialog.getWindow()!!.setLayout(
-                            900,
-                            LinearLayout.LayoutParams.WRAP_CONTENT
-                        )
-                    }
-
-                    setOnClickListenerToSubmitUserRating(userRatingDialog)
-                    userRatingDialog.show()
-
-                }
-            }
-        }
-
-        // observe sender of the trade's collectibles to show in trade details dialog
-        activity.viewModel.tradeImagesSenderLiveData.observe(
-            viewLifecycleOwner,
-            androidx.lifecycle.Observer {
-                if (it == null || it.items.isEmpty()) {
-                    Toast.makeText(
-                        requireContext(),
-                        "Error getting trade images for sender",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    return@Observer
-                }
-
-                val imageAdapter1 = ImageAdapter(tradeDetailsSenderCollectibleImages)
-                val rv1 =
-                    dialog.findViewById<RecyclerView>(R.id.this_user_collectibles_trade_recycler)
-                if(dialog.isShowing)
-                    rv1.adapter = imageAdapter1
-
-                for (item in it.items) {
-                    item.getBytes(ONE_HUNDRED_MEGABYTE).addOnSuccessListener { byteArray ->
-                        tradeDetailsSenderCollectibleImages.add(byteArray)
-                        imageAdapter1.notifyItemInserted(tradeDetailsSenderCollectibleImages.lastIndex)
-                    }
-                }
-                dialog.findViewById<ProgressBar>(R.id.progressBar).visibility = View.GONE
-            })
-
-        // observe receiver of the trade's collectibles to show in trade details dialog
-        activity.viewModel.tradeImagesReceiverLiveData.observe(viewLifecycleOwner) {
-            if (it == null || it.items.isEmpty()) {
-                Toast.makeText(
-                    requireContext(),
-                    "Error getting trade images for receiver",
-                    Toast.LENGTH_SHORT
-                ).show()
-                return@observe
-            }
-
-            val imageAdapter2 = ImageAdapter(tradeDetailsReceiverCollectibleImages)
-            val rv2 = dialog.findViewById<RecyclerView>(R.id.other_user_collectibles_trade_recycler)
-            if(dialog.isShowing) rv2.adapter = imageAdapter2
-
-            for (item in it.items) {
-                item.getBytes(ONE_HUNDRED_MEGABYTE).addOnSuccessListener { byteArray ->
-                    tradeDetailsReceiverCollectibleImages.add(byteArray)
-                    imageAdapter2.notifyItemInserted(tradeDetailsReceiverCollectibleImages.lastIndex)
-                }
-            }
-            dialog.findViewById<ProgressBar>(R.id.progressBar).visibility = View.GONE
-        }
-
+        // make sure messages tab in bottom nav bar is highlighted
+        activity.binding.bottomNavigationView.menu.getItem(0).isChecked = true
 
         // progress dialog for uploading image
         val progressDialog = ProgressDialog(requireContext())
-        progressDialog.setTitle("Sending Trade Offer...")
-        //observe whether or not trade message is successfully sent
-        activity.viewModel.isTradeMessageSentLiveData.observe(
-            viewLifecycleOwner,
-            androidx.lifecycle.Observer {
-                if (!it) {
-                    Toast.makeText(requireContext(), "Trade failed to send", Toast.LENGTH_SHORT)
-                        .show()
-                    return@Observer
-                }
-                Toast.makeText(requireContext(), "Trade sent!", Toast.LENGTH_SHORT).show()
-                if (dialog.isShowing) dialog.dismiss()
-                progressDialog.dismiss()
-            })
+        progressDialog.setTitle(getString(R.string.sending_trade_offer))
+        progressDialog.setCancelable(false)
+        // dialog used to facilitate trade offers
+        dialog = Dialog(requireContext())
+        //dialog user to show trade details
+        tradeDetailsDialog = Dialog(requireContext())
+        // dialog that will be used to facilitate rating users
+        val userRatingDialog = Dialog(requireContext())
+
+        val messages = ArrayList<Message>()
+        val adapter = MessageAdapter(messages, activity.currentUser!!.uid,this)
+        binding.messagesRecycler.adapter = adapter
+
+        var collectibleAdapter =
+            CollectibleAdapter(activity.userInfo.collectibles, activity.userInfo, this,
+                this, true, false)
+        collectibleAdapter.submitList(activity.userInfo.collectibles)
+
+        //get the other users id passed in to messagesFragment as argument
+        otherUserId = requireArguments().get("otherUserId").toString()
+        viewModel.getUserInfo(otherUserId)
+        viewModel.userInfoLiveData.observe(viewLifecycleOwner) {
+            if (it == null) {
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.error_getting_user_info),
+                    Toast.LENGTH_SHORT
+                ).show()
+                return@observe
+            }
+            otherUserInfo = it
+            binding.textView9.text = "Conversation with: ${otherUserInfo.screenName}"
+        }
+
+        //observe messages and handle each type of message accordingly (TEXT, IMAGE, TRADE)
+        viewModel.listenForMessagesFromOtherUser(activity.currentUser.uid, otherUserId)
 
         //observe whether or not text message is successfully sent
         activity.viewModel.isTextMessageSentLiveData.observe(
@@ -323,7 +128,7 @@ class MessageFragment : Fragment(), CollectibleAdapter.OnItemClickListener, Coll
                 if (!it) {
                     Toast.makeText(
                         requireContext(),
-                        "TextMessage failed to send",
+                        getString(R.string.text_message_failed_to_send),
                         Toast.LENGTH_SHORT
                     )
                         .show()
@@ -332,100 +137,102 @@ class MessageFragment : Fragment(), CollectibleAdapter.OnItemClickListener, Coll
                 binding.etMessageToSend.setText("")
             })
 
+        viewModel.isTradeStatusAcceptanceReceivedUpdatedLiveData.observe(viewLifecycleOwner){ tradeMessage ->
+            if(tradeMessage == null){
+                Toast.makeText(requireContext(), getString(R.string.error_updating_trade_accepted), Toast.LENGTH_SHORT).show()
+                return@observe
+            }
+
+            userRatingDialog.setContentView(R.layout.dialog_rate_user)
+            userRatingDialog.setCancelable(false)
+            if (userRatingDialog.getWindow() != null) {
+                val configuration: Configuration = (requireActivity() as MainActivity).getResources().getConfiguration()
+                if(configuration.smallestScreenWidthDp > 600)
+                    userRatingDialog.window!!.setLayout(1800, 2000)
+                else if(configuration.smallestScreenWidthDp <= 600 && configuration.smallestScreenWidthDp >= 380)
+                    userRatingDialog.window!!.setLayout(1080, 1700)
+                else userRatingDialog.window!!.setLayout(480, ConstraintLayout.LayoutParams.WRAP_CONTENT)
+            }
+
+            setOnClickListenerToSubmitUserRating(userRatingDialog)
+            userRatingDialog.show()
+        }
+
+        activity.viewModel.isTradeMessageSentLiveData.observe(viewLifecycleOwner){
+            if(it) Toast.makeText(requireContext(), getString(R.string.trade_offer_sent), Toast.LENGTH_SHORT).show()
+            else Toast.makeText(requireContext(), getString(R.string.error_sending_trade_offer), Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+            progressDialog.dismiss()
+        }
+
+        // send trade message
         binding.ivSendTradeIcon.setOnClickListener {
 
-            buildTradeDialog()
+            buildTradeOfferDialog()
 
-            // create and setup recyclerview/adapter to display trade collectibles
-            val rv: RecyclerView = dialog.findViewById(R.id.trade_collectibles_recycler)
-            rv.layoutManager = GridLayoutManager(requireContext(),2)
-            var adapter = CollectibleAdapter(collectiblesForTrade, activity.userInfo, this, this, true, false)
-            rv.adapter = adapter
-
+            val rv1: RecyclerView = dialog.findViewById(R.id.trade_collectibles_recycler_1)
+            val rv2: RecyclerView = dialog.findViewById(R.id.trade_collectibles_recycler_2)
             dialog.findViewById<MaterialButton>(R.id.btn_cancel).setOnClickListener {
-                collectiblesForTrade.clear()
+                collectibleAdapter.submitList(activity.userInfo.collectibles)
+                rv1.visibility = View.VISIBLE
+                rv2.visibility = View.GONE
+                dialog.findViewById<TextView>(R.id.tv_tradeOfferTitle).visibility = View.VISIBLE
+                dialog.findViewById<TextView>(R.id.tv_tradeOfferTitle).text = getString(R.string.select_collectibles_to_give)
+                dialog.findViewById<TextView>(R.id.tv_for).visibility = View.GONE
+
+                user1SelectedCollectibles.clear()
+                user2SelectedCollectibles.clear()
+                thisUsersSelectedCollectiblesForTrade.clear()
+                otherUsersSelectedCollectiblesForTrade.clear()
+                viewingThisUsersCollectibles = true
+                readyToOfferTrade = false
                 dialog.dismiss()
             }
+
+
             dialog.findViewById<MaterialButton>(R.id.btn_confirm).setOnClickListener {
+
+                collectibleAdapter = CollectibleAdapter(activity.userInfo.collectibles, activity.userInfo, this, this, true, false)
+                rv1.adapter = collectibleAdapter
+                rv2.adapter = collectibleAdapter
+                
                 if (viewingThisUsersCollectibles)
-                    setupAndFacilitateUserSelectItemsToGiveForTrade(rv)
+                    selectItemsToGiveForTrade(collectibleAdapter)
                 else {
                     if (!readyToOfferTrade)
-                        setupAndFacilitateUserSelectItemsToReceiveForTrade(rv)
+                        selectItemsToReceiveForTrade()
                     else
                         confirmAndSendTradeOffer(progressDialog)
                 }
             }
 
-            //observe this users collectibles and display in recyclerview in trade dialog
-            activity.viewModel.thisUsersCollectiblesLiveData.observe(
-                viewLifecycleOwner,
-                androidx.lifecycle.Observer {
-                    if (it == null) {
-                        Toast.makeText(
-                            requireContext(),
-                            "Error getting this user's collectibles",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        return@Observer
-                    }
-
-                    // cycle through collectibles for all users
-                    for (item in it.items) {
-                        item.metadata.addOnSuccessListener { metadata ->
-                            item.getBytes(ONE_HUNDRED_MEGABYTE)
-                                .addOnSuccessListener { byteArray ->
-                                    val tags = ArrayList<String>()
-                                    val tagsArr =
-                                        metadata.getCustomMetadata("tags").toString()
-                                            .split(",")
-                                    for (i in tagsArr.indices)
-                                        tags.add(tagsArr[i])
-
-                                    val collectible = Collectible(
-                                        item.name,
-                                        metadata.getCustomMetadata("name").toString(),
-                                        metadata.getCustomMetadata("desc").toString(),
-                                        metadata.getCustomMetadata("cond").toString(),
-                                        byteArray,
-                                        metadata.getCustomMetadata("views").toString(),
-                                        tags,
-                                        (requireActivity() as MainActivity).currentUser!!.uid
-                                    )
-                                    if (!collectiblesForTrade.contains(collectible)) {
-                                        collectiblesForTrade.add(collectible)
-                                        adapter.notifyItemInserted(collectiblesForTrade.lastIndex)
-                                        dialog.findViewById<ProgressBar>(R.id.progressBar).visibility = View.GONE
-                                    }
-
-                                }.addOnFailureListener {
-                                    Toast.makeText(
-                                        requireContext(),
-                                        "Error: " + it.message,
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                        }
-                    }
-                })
-
-            dialog.findViewById<LinearLayout>(R.id.final_trade_offer_layout).visibility = View.GONE
             dialog.show()
-            dialog.findViewById<ProgressBar>(R.id.progressBar).visibility = View.VISIBLE
+            // create and setup recyclerview/adapter to display trade collectibles
+            rv1.adapter = collectibleAdapter
+            rv2.adapter = collectibleAdapter
+
         }
 
-        //retrieve this users collectibles to allow him to pick them for trade
-        activity.viewModel.getThisUsersCollectibles(activity.currentUser!!.uid)
+        viewModel.isTradeStatusUpdatedLiveData.observe(viewLifecycleOwner){
+            if(it == null){
+                Toast.makeText(requireContext(), getString(R.string.error_updating_trade_status), Toast.LENGTH_SHORT).show()
+                return@observe
+            }
+            if(tradeDetailsDialog.isShowing) tradeDetailsDialog.dismiss()
 
+        }
+
+        // send text message
         binding.ivSendIcon.setOnClickListener {
             if (binding.etMessageToSend.text.toString() == "") {
-                Toast.makeText(requireContext(), "Message must not be empty", Toast.LENGTH_SHORT)
+                Toast.makeText(requireContext(), getString(R.string.message_is_empty), Toast.LENGTH_SHORT)
                     .show()
                 return@setOnClickListener
             }
             sendTextMessage()
         }
 
+        //send image message
         binding.ivSendImageIcon.setOnClickListener {
             selectImage()
         }
@@ -434,6 +241,7 @@ class MessageFragment : Fragment(), CollectibleAdapter.OnItemClickListener, Coll
     }
 
     private fun sendTextMessage() {
+        val activity = (requireActivity() as MainActivity)
         val c = Calendar.getInstance()
         val df = SimpleDateFormat("dd-MM-yyyy HH:mm a")
         val formattedDate = df.format(c.time)
@@ -455,8 +263,10 @@ class MessageFragment : Fragment(), CollectibleAdapter.OnItemClickListener, Coll
         )
     }
 
+
     private fun confirmAndSendTradeOffer(progressDialog: ProgressDialog) {
 
+        val activity = (requireActivity() as MainActivity)
         val c = Calendar.getInstance()
         val df = SimpleDateFormat("dd-MM-yyyy HH:mm a")
         val formattedDate = df.format(c.time)
@@ -473,8 +283,8 @@ class MessageFragment : Fragment(), CollectibleAdapter.OnItemClickListener, Coll
                 messageId,
                 activity.currentUser!!.uid,
                 otherUserId,
-                thisUsersSelectedCollectiblesForTrade,
-                otherUsersSelectedCollectiblesForTrade
+                user1SelectedCollectibles,
+                user2SelectedCollectibles
             ),
             "OPEN"
         )
@@ -487,96 +297,45 @@ class MessageFragment : Fragment(), CollectibleAdapter.OnItemClickListener, Coll
         progressDialog.show()
     }
 
-    private fun setupAndFacilitateUserSelectItemsToReceiveForTrade(rv: RecyclerView) {
+    private fun selectItemsToGiveForTrade(collectibleAdapter: CollectibleAdapter) {
 
-        dialog.findViewById<TextView>(R.id.textView5).text = "Confirm Trade Offer"
-        dialog.findViewById<LinearLayout>(R.id.final_trade_offer_layout).visibility =
-            View.VISIBLE
-        rv.visibility = View.GONE
+        val btnConfirm = dialog.findViewById<MaterialButton>(R.id.btn_confirm)
+        btnConfirm.isEnabled = false
+        btnConfirm.alpha = .5f
+
+        dialog.findViewById<TextView>(R.id.tv_tradeOfferTitle).text =
+            getString(R.string.select_collectibles_to_recieve)
+        viewingThisUsersCollectibles = false
+        collectibleAdapter.submitList(otherUserInfo.collectibles)
+    }
+
+    private fun selectItemsToReceiveForTrade() {
+        val activity = (requireActivity() as MainActivity)
+
+        dialog.findViewById<TextView>(R.id.tv_tradeOfferTitle).text = getString(R.string.confirm_trade_confirm)
+        dialog.findViewById<TextView>(R.id.tv_for).visibility = View.VISIBLE
 
 
         val thisUserFinalAdapter = CollectibleAdapter(
-            thisUsersSelectedCollectiblesForTrade, activity.userInfo, this, this, false, false
+            thisUsersSelectedCollectiblesForTrade,  activity.userInfo, this, this, false, false
         )
         val thisUsersRv =
-            dialog.findViewById<RecyclerView>(R.id.this_user_collectibles_trade_recycler)
+            dialog.findViewById<RecyclerView>(R.id.trade_collectibles_recycler_1)
         thisUsersRv.adapter = thisUserFinalAdapter
-
 
         val otherUserFinalAdapter = CollectibleAdapter(
             otherUsersSelectedCollectiblesForTrade, activity.userInfo, this, this, false, false
         )
-        val otherUsersRv =
-            dialog.findViewById<RecyclerView>(R.id.other_user_collectibles_trade_recycler)
-        otherUsersRv.adapter = otherUserFinalAdapter
 
+        val otherUsersRv = dialog.findViewById<RecyclerView>(R.id.trade_collectibles_recycler_2)
+        otherUsersRv.visibility = View.VISIBLE
+        otherUsersRv.adapter = otherUserFinalAdapter
+        otherUserFinalAdapter.submitList(otherUsersSelectedCollectiblesForTrade)
 
         readyToOfferTrade = true
     }
 
-    private fun setupAndFacilitateUserSelectItemsToGiveForTrade(rv: RecyclerView) {
-        collectiblesForTrade.clear()
 
-        dialog.findViewById<ProgressBar>(R.id.progressBar).visibility = View.VISIBLE
-        activity.viewModel.getOtherUsersCollectibles(otherUserId)
-        activity.viewModel.otherUsersCollectiblesLiveData.observe(
-            viewLifecycleOwner,
-            androidx.lifecycle.Observer {
-                if (it == null) {
-                    Toast.makeText(
-                        requireContext(),
-                        "Error getting other user's collectibles",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    return@Observer
-                }
-
-                // cycle through collectibles for all users
-                for (item in it.items) {
-                    item.metadata.addOnSuccessListener { metadata ->
-                        item.getBytes(ONE_HUNDRED_MEGABYTE)
-                            .addOnSuccessListener { byteArray ->
-                                val tags = ArrayList<String>()
-                                val tagsArr =
-                                    metadata.getCustomMetadata("tags").toString()
-                                        .split(",")
-                                for (i in tagsArr.indices)
-                                    tags.add(tagsArr[i])
-
-                                val collectible = Collectible(
-                                    item.name,
-                                    metadata.getCustomMetadata("name").toString(),
-                                    metadata.getCustomMetadata("desc").toString(),
-                                    metadata.getCustomMetadata("cond").toString(),
-                                    byteArray,
-                                    metadata.getCustomMetadata("views").toString(),
-                                    tags,
-                                    otherUserId
-                                )
-                                if (!collectiblesForTrade.contains(collectible)) {
-                                    collectiblesForTrade.add(collectible)
-                                }
-
-                                rv.adapter = CollectibleAdapter(collectiblesForTrade, activity.userInfo, this, this, true, false)
-
-
-                            }.addOnFailureListener {
-                                Toast.makeText(
-                                    requireContext(),
-                                    "Error: " + it.message,
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                    }
-                }
-
-                dialog.findViewById<ProgressBar>(R.id.progressBar).visibility = View.GONE
-
-            })
-        dialog.findViewById<TextView>(R.id.textView5).text =
-            "Select Collectibles to Receive"
-        viewingThisUsersCollectibles = false
-    }
 
     // Override onActivityResult method
     override fun onActivityResult(
@@ -596,8 +355,9 @@ class MessageFragment : Fragment(), CollectibleAdapter.OnItemClickListener, Coll
         // then set image in the image view
         if (requestCode == PICK_IMAGE_REQUEST && resultCode == Activity.RESULT_OK && data != null && data.data != null) {
 
+            val activity = (requireActivity() as MainActivity)
             // Get the Uri of data
-            filePath = data.data
+            val filePath = data.data
 
             val c = Calendar.getInstance()
             val df = SimpleDateFormat("dd-MM-yyyy HH:mm a")
@@ -610,7 +370,7 @@ class MessageFragment : Fragment(), CollectibleAdapter.OnItemClickListener, Coll
                 otherUserInfo.screenName,
                 formattedDate,
                 Constants.MESSAGE_TYPE_IMAGE,
-                null,
+                "",
             )
 
             activity.viewModel.sendImageMessage(
@@ -632,35 +392,43 @@ class MessageFragment : Fragment(), CollectibleAdapter.OnItemClickListener, Coll
         startActivityForResult(
             Intent.createChooser(
                 intent,
-                "Select Image from here..."
+                getString(R.string.select_image_from_here)
             ),
             PICK_IMAGE_REQUEST
         )
     }
 
-    private fun buildTradeDialog() {
+    private fun buildTradeOfferDialog() {
+
+        val configuration: Configuration = (requireActivity() as MainActivity).getResources().getConfiguration()
 
         dialog.setContentView(R.layout.dialog_trade_offer)
         dialog.setCancelable(false)
-
-        if (dialog.getWindow() != null) {
-            dialog.getWindow()!!.setLayout(
-                1000, 1600
-            )
+        if (dialog.window != null) {
+            if(configuration.smallestScreenWidthDp > 600)
+                dialog.window!!.setLayout(1800, 2000)
+            else if(configuration.smallestScreenWidthDp <= 600 && configuration.smallestScreenWidthDp >= 380)
+                dialog.window!!.setLayout(1080, 1600)
+            else dialog.window!!.setLayout(480, 750)
         }
+        dialog.findViewById<TextView>(R.id.tv_tradeOfferTitle).text = getString(R.string.select_collectibles_to_give)
+        dialog.findViewById<TextView>(R.id.tv_for).visibility = View.GONE
+        dialog.findViewById<RecyclerView>(R.id.trade_collectibles_recycler_2).visibility = View.GONE
+
     }
 
     fun setOnClickListenerToSubmitUserRating(userRatingDialog: Dialog) {
         userRatingDialog.findViewById<MaterialButton>(R.id.btn_submit)
             .setOnClickListener {
+                val activity = (requireActivity() as MainActivity)
                 val ratingBar = userRatingDialog.findViewById<RatingBar>(R.id.rating)
-                ratingStarsGiven = ratingBar.rating
+                val ratingStarsGiven = ratingBar.rating
 
                 activity.viewModel.isUserInfoUpdatedLiveData.observe(viewLifecycleOwner) {
-                    if (!it) {
+                    if (it == null) {
                         Toast.makeText(
                             requireContext(),
-                            "User rating failed",
+                            getString(R.string.user_rating_failed),
                             Toast.LENGTH_SHORT
                         ).show()
                         return@observe
@@ -668,7 +436,7 @@ class MessageFragment : Fragment(), CollectibleAdapter.OnItemClickListener, Coll
 
                     Toast.makeText(
                         requireContext(),
-                        "User rated successfully",
+                        getString(R.string.user_rated_successfully),
                         Toast.LENGTH_SHORT
                     ).show()
                     userRatingDialog.dismiss()
@@ -678,28 +446,183 @@ class MessageFragment : Fragment(), CollectibleAdapter.OnItemClickListener, Coll
                         )
                     )
                 }
-                activity.userInfo.totalRatingStars += ratingStarsGiven
-                activity.userInfo.totalRates += 1
-                activity.userInfo.rating =
-                    activity.userInfo.totalRatingStars / activity.userInfo.totalRates
-                activity.viewModel.updateUserInfo(activity.userInfo)
+                otherUserInfo.totalRatingStars += ratingStarsGiven
+                otherUserInfo.totalRates += 1
+                otherUserInfo.rating =
+                    otherUserInfo.totalRatingStars / otherUserInfo.totalRates
+                activity.viewModel.updateProfile(otherUserInfo, null)
                 dialog.dismiss()
             }
     }
 
 
+    override fun onItemClick(position: Int, collectible: Collectible, isChecked: Boolean) {
+        val btnConfirm = dialog.findViewById<MaterialButton>(R.id.btn_confirm)
+        if(tradeDetailsDialog.isShowing){
+            findNavController().navigate(MessageFragmentDirections.actionMessageFragmentToCollectibleDetailsFragment(collectible))
+            tradeDetailsDialog.dismiss()
+        }
+        else {
+            if (viewingThisUsersCollectibles) {
+                if (isChecked) {
+                    thisUsersSelectedCollectiblesForTrade.add((requireActivity() as MainActivity).userInfo.collectibles[position])
+                    user1SelectedCollectibles.add(collectible)
+                } else {
+                    thisUsersSelectedCollectiblesForTrade.remove((requireActivity() as MainActivity).userInfo.collectibles[position])
+                    user1SelectedCollectibles.remove(collectible)
+                }
 
-    override fun onItemClick(position: Int) {
-        dialog.findViewById<MaterialButton>(R.id.btn_confirm).isEnabled = true
+                if (thisUsersSelectedCollectiblesForTrade.isNotEmpty()) {
+                    btnConfirm.isEnabled = true
+                    btnConfirm.alpha = 1f
+                } else {
+                    btnConfirm.isEnabled = false
+                    btnConfirm.alpha = .5f
+                }
+            } else {
+                if (isChecked) {
+                    otherUsersSelectedCollectiblesForTrade.add(otherUserInfo.collectibles[position])
+                    user2SelectedCollectibles.add(collectible)
+                } else {
+                    otherUsersSelectedCollectiblesForTrade.remove(otherUserInfo.collectibles[position])
+                    user2SelectedCollectibles.remove(collectible)
+                }
 
-        if (viewingThisUsersCollectibles) {
-            thisUsersSelectedCollectiblesForTrade.add(collectiblesForTrade[position])
-        } else {
-            otherUsersSelectedCollectiblesForTrade.add(collectiblesForTrade[position])
+                if (otherUsersSelectedCollectiblesForTrade.isNotEmpty()) {
+                    btnConfirm.isEnabled = true
+                    btnConfirm.alpha = 1f
+                } else {
+                    btnConfirm.isEnabled = false
+                    btnConfirm.alpha = .5f
+                }
+            }
         }
     }
 
-    override fun onFavoriteClick(position: Int) {
+    override fun onFavoriteClick(position: Int, collectible: Collectible) {
         Toast.makeText(requireContext(), "Favorite clicked: $position", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onTradeMessageItemClick(tradeMessage: TradeMessage) {
+
+        val activity = (requireActivity() as MainActivity)
+        buildTradeDetailDialog()
+        tradeDetailsDialog.show()
+
+        val rv1: RecyclerView = tradeDetailsDialog.findViewById(R.id.this_user_collectibles_trade_recycler)
+        val rv2: RecyclerView = tradeDetailsDialog.findViewById(R.id.other_user_collectibles_trade_recycler)
+
+        rv1.adapter = CollectibleAdapter(tradeMessage.trade!!.senderCollectibles,  activity.userInfo, this, this, false, false)
+        rv2.adapter =  CollectibleAdapter(tradeMessage.trade.receiverCollectibles,activity.userInfo, this, this, false, false)
+
+        // trade details dialog is shown when trade message is clicked
+
+        val btnNegative = tradeDetailsDialog.findViewById<MaterialButton>(R.id.btn_cancel)
+        val btnPositive = tradeDetailsDialog.findViewById<MaterialButton>(R.id.btn_confirm)
+        val btnNeutral = tradeDetailsDialog.findViewById<MaterialButton>(R.id.btn_neutral)
+
+
+        // handle the different cases of trade status (OPEN, CLOSED, ACCEPTED, REJECTED) and set
+        // the appropriate actions for positive and negative buttons of trade details dialog
+        // OPEN
+        if (tradeMessage.tradeStatus == Constants.TRADE_STATUS_OPEN) {
+            btnPositive.visibility = View.VISIBLE
+            btnNegative.visibility = View.VISIBLE
+            btnPositive.alpha = 1f
+            btnPositive.isEnabled = true
+            tradeDetailsDialog.findViewById<TextView>(R.id.tv_tradeDetailsTitle).text = getString(R.string.trade_offered)
+            if (activity.currentUser!!.uid == tradeMessage.senderId) {
+
+                btnNegative.text = getString(R.string.cancel_trade)
+                btnNegative.setOnClickListener {
+                    // cancel the trade
+                    tradeMessage.tradeStatus = Constants.TRADE_STATUS_CANCELED
+                    viewModel.updateTradeStatus(activity.userInfo, otherUserInfo, tradeMessage)
+                }
+                btnPositive.text = getString(R.string.ok2)
+                btnPositive.setOnClickListener {
+                    tradeDetailsDialog.dismiss()
+                }
+            } else {
+
+                btnNegative.text = getString(R.string.reject_trade)
+                btnNeutral.visibility = View.VISIBLE
+                btnNeutral.setOnClickListener{
+                    btnNeutral.visibility = View.GONE
+                    tradeDetailsDialog.dismiss()
+                }
+                btnNegative.setOnClickListener {
+                    // reject the trade
+                    tradeMessage.tradeStatus = Constants.TRADE_STATUS_REJECTED
+                    viewModel.updateTradeStatus(
+                        activity.userInfo, otherUserInfo,
+                        tradeMessage
+                    )
+                    btnNeutral.visibility = View.GONE
+                }
+                btnPositive.text = getString(R.string.accept_trade)
+                btnPositive.setOnClickListener {
+                    tradeMessage.tradeStatus = Constants.TRADE_STATUS_ACCEPTED
+                    viewModel.updateTradeStatus(
+                        activity.userInfo, otherUserInfo,
+                        tradeMessage
+                    )
+                    tradeMessage.tradeAcceptanceReceived = true
+                    viewModel.updateTradeAcceptanceReceived(tradeMessage.recipientId, tradeMessage.senderId, tradeMessage, false)
+                    btnNeutral.visibility = View.GONE
+                    tradeDetailsDialog.dismiss()
+
+                }
+            }
+        }
+
+        // CANCELED
+        else if (tradeMessage.tradeStatus == Constants.TRADE_STATUS_CANCELED) {
+            btnPositive.isEnabled = false
+            tradeDetailsDialog.findViewById<TextView>(R.id.tv_tradeDetailsTitle).text = getString(R.string.trade_canceled)
+
+            btnNegative.text = getString(R.string.ok)
+            btnPositive.visibility = View.GONE
+            btnNegative.setOnClickListener {
+                tradeDetailsDialog.dismiss()
+            }
+        }
+
+        // REJECTED
+        else if (tradeMessage.tradeStatus == Constants.TRADE_STATUS_REJECTED) {
+            btnPositive.isEnabled = false
+            tradeDetailsDialog.findViewById<TextView>(R.id.tv_tradeDetailsTitle).text = getString(R.string.trade_rejected)
+
+            btnNegative.text = getString(R.string.ok)
+            btnPositive.visibility = View.GONE
+            btnNegative.setOnClickListener {
+                tradeDetailsDialog.dismiss()
+            }
+        }
+
+        // ACCEPTED
+        else if (tradeMessage.tradeStatus == Constants.TRADE_STATUS_ACCEPTED) {
+            btnPositive.isEnabled = false
+            tradeDetailsDialog.findViewById<TextView>(R.id.tv_tradeDetailsTitle).text = getString(R.string.trade_accepted)
+
+            btnNegative.text = getString(R.string.ok)
+            btnPositive.visibility = View.GONE
+            btnNegative.setOnClickListener {
+                tradeDetailsDialog.dismiss()
+            }
+        }
+    }
+    private fun buildTradeDetailDialog() {
+        tradeDetailsDialog.setContentView(R.layout.dialog_trade_details)
+        tradeDetailsDialog.setCancelable(false)
+        if (tradeDetailsDialog.getWindow() != null) {
+            val configuration: Configuration = (requireActivity() as MainActivity).getResources().getConfiguration()
+            if(configuration.smallestScreenWidthDp > 600)
+                tradeDetailsDialog.window!!.setLayout(1800, 2000)
+            else if(configuration.smallestScreenWidthDp <= 600 && configuration.smallestScreenWidthDp >= 380)
+                tradeDetailsDialog.window!!.setLayout(1080, 1700)
+            else tradeDetailsDialog.window!!.setLayout(480, 700)
+        }
+        tradeDetailsDialog.findViewById<TextView>(R.id.tv_tradeDetailsTitle).text = getString(R.string.trade_offer)
     }
 }

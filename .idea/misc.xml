@@ -26,7 +26,10 @@
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/gradient.xml" value="0.151" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/home_selector.xml" value="0.2685" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_add_24.xml" value="0.148" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_arrow_back_24.xml" value="0.16" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_arrow_downward_24.xml" value="0.16" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_arrow_drop_down_24.xml" value="0.1165" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_arrow_upward_24.xml" value="0.16" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_cloud_off_24.xml" value="0.124" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_favorite_24.xml" value="0.1165" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_favorite_border_24.xml" value="0.1165" />
@@ -39,19 +42,89 @@
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_star_24.xml" value="0.197" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/ic_baseline_star_outline_24.xml" value="0.197" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/message_border.xml" value="0.185" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/near_far_border.xml" value="0.16" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/simple_border.xml" value="0.2685" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/spinner_background.xml" value="0.2685" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/thin_white_border.xml" value="0.1365" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/white_bg_blue_border.xml" value="0.2345" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/drawable/white_bg_pink_border.xml" value="0.2345" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw200dp/activity_main.xml" value="0.24427083333333333" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw200dp/collectibles_list_item.xml" value="0.264" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw200dp/conversations_list_item.xml" value="0.536" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw200dp/dialog_rate_user.xml" value="0.3625" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw200dp/dialog_trade_details.xml" value="0.536" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw200dp/dialog_trade_offer.xml" value="0.536" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw200dp/fragment_add_collectible.xml" value="0.536" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw200dp/fragment_collectible_details.xml" value="0.536" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw200dp/fragment_conversations.xml" value="0.536" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw200dp/fragment_edit_collectibles.xml" value="0.49" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw200dp/fragment_edit_profile.xml" value="0.6" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw200dp/fragment_favorites.xml" value="0.536" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw200dp/fragment_home.xml" value="0.49" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw200dp/fragment_login.xml" value="0.6" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw200dp/fragment_message.xml" value="0.6" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw200dp/fragment_profile.xml" value="0.536" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw200dp/fragment_questionnaire.xml" value="0.4" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw200dp/fragment_registration.xml" value="0.536" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw200dp/message_list_item.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw320dp/fragment_login.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw330dp/fragment_home.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw330dp/fragment_login.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw360dp/collectibles_list_item.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw360dp/fragment_home.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw380dp/activity_main.xml" value="0.24427083333333333" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw380dp/collectibles_list_item.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw380dp/conversations_list_item.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw380dp/dialog_rate_user.xml" value="0.3625" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw380dp/dialog_trade_details.xml" value="0.3625" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw380dp/dialog_trade_offer.xml" value="0.3625" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw380dp/fragment_add_collectible.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw380dp/fragment_collectible_details.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw380dp/fragment_conversations.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw380dp/fragment_edit_collectibles.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw380dp/fragment_edit_profile.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw380dp/fragment_favorites.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw380dp/fragment_home.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw380dp/fragment_login.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw380dp/fragment_message.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw380dp/fragment_profile.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw380dp/fragment_questionnaire.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw380dp/fragment_registration.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw380dp/message_list_item.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw400dp/collectibles_list_item.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw400dp/fragment_home.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw400dp/fragment_login.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw400dp/message_list_item.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw600dp/activity_main.xml" value="0.183203125" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw600dp/collectibles_list_item.xml" value="0.196875" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw600dp/conversations_list_item.xml" value="0.153125" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw600dp/dialog_rate_user.xml" value="0.271875" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw600dp/dialog_trade_details.xml" value="0.271875" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw600dp/dialog_trade_offer.xml" value="0.271875" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw600dp/fragment_add_collectible.xml" value="0.2" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw600dp/fragment_collectible_details.xml" value="0.153125" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw600dp/fragment_conversations.xml" value="0.153125" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw600dp/fragment_edit_collectibles.xml" value="0.2" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw600dp/fragment_edit_profile.xml" value="0.153125" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw600dp/fragment_favorites.xml" value="0.153125" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw600dp/fragment_home.xml" value="0.196875" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw600dp/fragment_login.xml" value="0.152" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw600dp/fragment_message.xml" value="0.153125" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw600dp/fragment_profile.xml" value="0.2" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw600dp/fragment_questionnaire.xml" value="0.153125" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw600dp/fragment_registration.xml" value="0.153125" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-sw600dp/message_list_item.xml" value="0.176" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout-w330dp/collectibles_list_item.xml" value="0.20416666666666666" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/activity_edit_profile.xml" value="0.18541666666666667" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/activity_login.xml" value="0.2421875" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/activity_main.xml" value="0.2" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/activity_splash.xml" value="0.2" />
-        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/collectibles_list_item.xml" value="0.6" />
-        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/conversations_list_item.xml" value="0.3625" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/collectibles_list_item.xml" value="0.176" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/conversations_list_item.xml" value="0.152" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/dialog_edit_loc.xml" value="0.2" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/dialog_rate_user.xml" value="0.2" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/dialog_trade_details.xml" value="0.18541666666666667" />
-        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/dialog_trade_offer.xml" value="0.264" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/dialog_trade_offer.xml" value="0.2" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_add_collectible.xml" value="0.264" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_collectible_details.xml" value="0.2" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_conversations.xml" value="0.23859649122807017" />
@@ -60,16 +133,20 @@
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_edit_profile.xml" value="0.2" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_favorites.xml" value="0.264" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_home.xml" value="0.264" />
-        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_login.xml" value="0.2" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_login.xml" value="0.4" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_message.xml" value="0.264" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_messages.xml" value="0.264" />
-        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_profile.xml" value="0.16" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_profile.xml" value="0.264" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_questionnaire.xml" value="0.2421875" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_registration.xml" value="0.2421875" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/fragment_search.xml" value="0.2" />
-        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/message_list_item.xml" value="0.264" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/message_list_item.xml" value="0.536" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/near_far_border.xml" value="0.24427083333333333" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/spinner_item.xml" value="0.3625" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/layout/test_list_item.xml" value="0.19583333333333333" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/menu-sw200dp/main_menu.xml" value="0.3625" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/menu-sw380dp/main_menu.xml" value="0.3625" />
+        <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/menu-sw600dp/main_menu.xml" value="0.271875" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/menu/bottom_nav_menu.xml" value="0.264" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/menu/edit_menu.xml" value="0.2453125" />
         <entry key="..\:/Users/hinto/Desktop/CollectorConnector/app/src/main/res/menu/main_menu.xml" value="0.2453125" />

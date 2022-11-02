@@ -1,8 +1,7 @@
 package com.example.collectorconnector.edit_profile
 
-import android.graphics.Color
+import android.app.ProgressDialog
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,144 +10,68 @@ import androidx.activity.OnBackPressedCallback
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.GridLayoutManager
 import com.example.collectorconnector.R
 import com.example.collectorconnector.adapters.CollectibleAdapter
 import com.example.collectorconnector.databinding.FragmentEditCollectiblesBinding
 import com.example.collectorconnector.models.Collectible
-import com.example.collectorconnector.util.Constants
 
-
-class EditCollectiblesFragment : Fragment(), CollectibleAdapter.OnItemClickListener, CollectibleAdapter.OnFavoriteClickListener {
+class EditCollectiblesFragment : Fragment(), CollectibleAdapter.OnItemClickListener,
+    CollectibleAdapter.OnFavoriteClickListener {
 
     private lateinit var binding: FragmentEditCollectiblesBinding
-    private var showCheckBoxes = true
     private val checkedItems = ArrayList<Int>()
-    val myCollectibles = ArrayList<Collectible>()
-    private val collectiblesDeleted = ArrayList<Collectible>()
-    private val viewModel:EditViewModel by viewModels()
+    private val collectiblesToDelete = ArrayList<Collectible>()
+    private val viewModel: EditViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         binding = DataBindingUtil.inflate(
             inflater,
             R.layout.fragment_edit_collectibles,
             container,
             false
         )
+        binding.lifecycleOwner = viewLifecycleOwner
+        binding.viewModel = viewModel
         // reference to activity where some needed references (viewModel, myCOllectibles)
         // are instantiated
         val activity = (requireActivity() as EditProfileActivity)
+        viewModel.userInfo = activity.userInfo
 
-        val adapter = CollectibleAdapter(myCollectibles, activity.userInfo, this, this, showCheckBoxes, false)
-        binding.collectiblesRecycler.adapter = adapter
-        binding.collectiblesRecycler.layoutManager = GridLayoutManager(requireContext(), 2)
+        val adapter =
+            CollectibleAdapter(activity.userInfo.collectibles, activity.userInfo, this, this, true, false)
+        binding.collectiblesRecyclerNear.adapter = adapter
 
-        viewModel.clearCollectiblesLiveData()
-        
-        // observe this users collectibles
-        viewModel.collectiblesLiveData.observe(viewLifecycleOwner, Observer {
-            if(it == null) {
-                binding.tvNoResults.text = "Error retrieving your collectibles. Please try again"
-                binding.tvNoResults.visibility = View.VISIBLE
-                binding.progressBar.visibility = View.GONE
-                return@Observer
-            }
-            if(it.items.isEmpty()) {
-                binding.tvNoResults.visibility = View.VISIBLE
-                binding.progressBar.visibility = View.GONE
-                return@Observer
-            }
-
-            // cycle through through this users collectibles
-            for (item in it.items) {
-
-                //get collectible metadata and image byte array for each user
-                item.metadata.addOnSuccessListener { metadata ->
-                    item.getBytes(Constants.ONE_HUNDRED_MEGABYTE)
-                        .addOnSuccessListener { byteArray ->
-                            binding.progressBar.visibility = View.GONE
-
-                            val tags = ArrayList<String>()
-                            val tagsArr =
-                                metadata.getCustomMetadata("tags").toString()
-                                    .split(",")
-                            for (i in tagsArr.indices)
-                                tags.add(tagsArr[i])
-
-                            val collectible = Collectible(
-                                item.name,
-                                metadata.getCustomMetadata("name").toString(),
-                                metadata.getCustomMetadata("desc").toString(),
-                                metadata.getCustomMetadata("cond").toString(),
-                                byteArray,
-                                metadata.getCustomMetadata("views").toString(),
-                                tags,
-                                activity.currentUser!!.uid
-                            )
-                            if(!myCollectibles.contains(collectible)){
-                                myCollectibles.add(collectible)
-                                adapter.notifyItemInserted(myCollectibles.indexOf(collectible))
-                            }
-                        }.addOnFailureListener {
-                            Toast.makeText(
-                                requireContext(),
-                                "Error: " + it.message,
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            binding.progressBar.visibility = View.GONE
-                        }
-                }
-            }
-        })
-
-        viewModel.getCollectiblesByUid(activity.currentUser!!.uid)
-        binding.progressBar.visibility = View.VISIBLE
+        val progressDialog = ProgressDialog(requireContext())
+        progressDialog.setCancelable(false)
+        progressDialog.setTitle(getString(R.string.deleting_collectible))
 
         // observe whether or not collectible deletion was successful or not
-        viewModel.isCollectibleDeletedLiveData.observe(
-            viewLifecycleOwner,
-            Observer {
-                if (!it) {
-                    Toast.makeText(
-                        requireContext(),
-                        "Error deleting collectible",
-                        Toast.LENGTH_SHORT
-                    )
-                        .show()
-                    return@Observer
-                }
-                if(collectiblesDeleted.isEmpty()) return@Observer
-
+        viewModel.isCollectibleDeletedLiveData.observe(viewLifecycleOwner) {
+            progressDialog.dismiss()
+            if (it == null) {
                 Toast.makeText(
                     requireContext(),
-                    "Collectible deleted",
+                    getString(R.string.error_deleting_collectible_toast),
                     Toast.LENGTH_SHORT
-                ).show()
-                val deleteCollectible = collectiblesDeleted[collectiblesDeleted.lastIndex]
-                val index = myCollectibles.indexOf(deleteCollectible)
-                myCollectibles.removeAt(index)
-                adapter.notifyItemRemoved(index)
-                collectiblesDeleted.remove(deleteCollectible)
-
-                binding.progressBar.visibility = View.GONE
-            })
-
-        binding.btnDelete.setOnClickListener{
-
-            for(index in checkedItems){
-                collectiblesDeleted.add(myCollectibles[index])
+                )
+                    .show()
+                return@observe
             }
-            binding.progressBar.visibility = View.VISIBLE
 
+            activity.userInfo.collectibles.remove(it)
+            adapter.submitList(activity.userInfo.collectibles)
+        }
+
+        binding.btnDelete.setOnClickListener {
             //make call to delete collectibles from firebase cloud storage
-            for(collectible in collectiblesDeleted){
-                viewModel.deleteCollectible(activity.currentUser.uid, collectible.uid)
+            progressDialog.show()
+            for (collectible in collectiblesToDelete) {
+                viewModel.deleteCollectible(activity.userInfo, collectible)
             }
         }
 
@@ -177,23 +100,27 @@ class EditCollectiblesFragment : Fragment(), CollectibleAdapter.OnItemClickListe
 
     // allow user to mark collectibles for deletion.
     // btn_delete will delete all marked collectibles
-    override fun onItemClick(position: Int) {
-        if(checkedItems.contains(position))
+    override fun onItemClick(position: Int, collectible: Collectible, isChecked: Boolean) {
+        if (checkedItems.contains(position)) {
             checkedItems.remove(position)
-        else
+            collectiblesToDelete.remove(collectible)
+        } else {
             checkedItems.add(position)
+            collectiblesToDelete.add(collectible)
+        }
 
-        if(checkedItems.isNotEmpty()) {
+        if (checkedItems.isNotEmpty()) {
             binding.btnDelete.isEnabled = true
             binding.btnDelete.alpha = 1f
         } else {
             binding.btnDelete.isEnabled = false
             binding.btnDelete.alpha = .5f
         }
-
     }
 
-    override fun onFavoriteClick(position: Int) {
+    override fun onFavoriteClick(position: Int, collectible: Collectible) {
         // nothing to do, you cant favorite your own collectibles
+        // its only implemented so I can make use of collectible adapter
+        // which requires implementing CollectibleAdapter.onFavoriteClick
     }
 }

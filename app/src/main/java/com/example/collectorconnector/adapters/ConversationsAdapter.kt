@@ -10,8 +10,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.collectorconnector.R
 import com.example.collectorconnector.models.Conversation
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.storage.StorageReference
 
-class ConversationsAdapter(private val dataSet: ArrayList<Conversation>,
+class ConversationsAdapter(private var dataSet: ArrayList<DocumentSnapshot>,
                            private val listener: OnItemClickListener
 ) :
     RecyclerView.Adapter<ConversationsAdapter.ViewHolder>() {
@@ -28,13 +30,19 @@ class ConversationsAdapter(private val dataSet: ArrayList<Conversation>,
         }
 
         override fun onClick(v: View?) {
-            if(adapterPosition != RecyclerView.NO_POSITION) listener.onItemClick(adapterPosition)
+            val conversation = Conversation(
+                dataSet[adapterPosition].id,
+                dataSet[adapterPosition].get("otherUserScreenName").toString(),
+                dataSet[adapterPosition].get("otherUserProfileImgUrl").toString(),
+                dataSet[adapterPosition].get("lastMessage").toString(),
+                dataSet[adapterPosition].get("time").toString()
+            )
+            if(adapterPosition != RecyclerView.NO_POSITION) listener.onItemClick(conversation)
         }
-
     }
 
     interface OnItemClickListener{
-        fun onItemClick(position: Int)
+        fun onItemClick(conversation: Conversation)
     }
 
     override fun onCreateViewHolder(viewGroup: ViewGroup, viewType: Int): ViewHolder {
@@ -45,17 +53,31 @@ class ConversationsAdapter(private val dataSet: ArrayList<Conversation>,
     }
 
     override fun onBindViewHolder(viewHolder: ViewHolder, position: Int) {
-        viewHolder.screenNameTV.text = dataSet[position].otherUserScreenName
+
+        val conversation = Conversation(
+            dataSet[position].id,
+            dataSet[position].get("otherUserScreenName").toString(),
+            dataSet[position].get("otherUserProfileImgUrl").toString(),
+            dataSet[position].get("lastMessage").toString(),
+            dataSet[position].get("time").toString()
+        )
+
+        viewHolder.screenNameTV.text = conversation.otherUserScreenName
         Glide.with(viewHolder.itemView.context)
             .asBitmap()
-            .load(dataSet[position].otherUserProfileImgUrl)
+            .load(conversation.otherUserProfileImgUrl)
             .circleCrop()
             .into(viewHolder.profileImg)
 
-        viewHolder.lastMessageTV.text = dataSet[position].lastMessage
-        viewHolder.timeTV.text = dataSet[position].time
+        viewHolder.lastMessageTV.text = conversation.lastMessage
+        viewHolder.timeTV.text = conversation.time
 
     }
 
     override fun getItemCount() = dataSet.size
+
+    fun submitList(list: ArrayList<DocumentSnapshot>) {
+        dataSet = list
+        notifyDataSetChanged()
+    }
 }

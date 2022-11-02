@@ -3,21 +3,22 @@ package com.example.collectorconnector.auth
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.ProgressDialog
 import android.content.DialogInterface
 import android.content.DialogInterface.OnMultiChoiceClickListener
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.location.Location
-import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -36,31 +37,15 @@ import com.example.collectorconnector.util.Constants.REQUEST_LOCATION_PERMISSION
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.tasks.OnCompleteListener
-import com.google.firebase.auth.FirebaseAuth
 import java.io.IOException
 import java.util.*
 
 
 class QuestionnaireFragment : Fragment() {
 
-    private var latitude = 0.0
-    private var longitude = 0.0
-    private lateinit var mfusedLocationClient: FusedLocationProviderClient
-    private var searchDistance = 0
-
     private lateinit var binding: FragmentQuestionnaireBinding
-    var tagsList: ArrayList<Int> = ArrayList()
-
-
-    // Uri indicates, where the image will be picked from
-    private var filePath: Uri? = null
-
-    private lateinit var userInfo: UserInfo
     private val viewModel: AuthViewModel by viewModels()
-    private lateinit var email: String
-    private lateinit var pw: String
-    private val finalTags = ArrayList<String>()
-
+    private lateinit var mfusedLocationClient: FusedLocationProviderClient
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -69,63 +54,61 @@ class QuestionnaireFragment : Fragment() {
     ): View? {
         binding =
             DataBindingUtil.inflate(inflater, R.layout.fragment_questionnaire, container, false)
+        binding.viewModel = viewModel
+        binding.lifecycleOwner = viewLifecycleOwner
 
         val activity = (requireActivity() as LoginActivity)
-        email = requireArguments().get("email").toString()
-        pw = requireArguments().get("password").toString()
-        var selectedTags = BooleanArray(activity.tagsArray.size)
+        viewModel.email = requireArguments().getString("email")!!
+        viewModel.pw = requireArguments().getString("pw")!!
+        val selectedTags = BooleanArray(activity.tagsArray.size)
 
         // initially all tags are unchecked in select tags dialog
         for (i in selectedTags.indices) selectedTags[i] = false
-
 
         mfusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity())
         binding.btnSetLocation.setOnClickListener {
             if (isPermissionGranted())
                 getLocation()
             else checkLocationPermissions()
-
         }
 
-        viewModel.isUserInfoUpdatedLiveData.observe(viewLifecycleOwner, Observer {
-            binding.progressBar.visibility = View.GONE
-            if (!it) {
-                Toast.makeText(requireContext(), "Error updating user info", Toast.LENGTH_SHORT)
-                    .show()
-                return@Observer
-            }
+        val progressDialog = ProgressDialog(requireContext())
+        progressDialog.setTitle(getString(R.string.creating_profile))
+        progressDialog.setCancelable(false)
 
-            Toast.makeText(
-                requireContext(),
-                "${userInfo.screenName} registered successfully",
-                Toast.LENGTH_SHORT
-            ).show()
-            startMainActivity(userInfo)
-        })
-
-        viewModel.isProfileImgUploadedLiveData.observe(viewLifecycleOwner, Observer {
-            if (it == null) {
-                Toast.makeText(
-                    requireContext(),
-                    "Error uploading profile image",
-                    Toast.LENGTH_SHORT
-                ).show()
-                return@Observer
-            }
-            userInfo.profileImgUrl = it
-
-            viewModel.updateUserInfo(userInfo)
-        })
+        viewModel.showProgressBar.observe(viewLifecycleOwner) {
+            if (it) progressDialog.show()
+        }
 
         viewModel.authenticatedUserLiveData.observe(viewLifecycleOwner, Observer {
             if (it == null) {
-                Toast.makeText(requireContext(), "Error, that email already exists", Toast.LENGTH_SHORT).show()
-                binding.progressBar.visibility = View.GONE
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.error_email_exists_toast),
+                    Toast.LENGTH_SHORT
+                ).show()
+                progressDialog.dismiss()
                 return@Observer
             }
+            viewModel.userInfo.uid = it.user!!.uid
+            viewModel.updateProfile(viewModel.userInfo, viewModel.filePath)
+        })
 
 
-            loadUserInfoIntoModelAndSendUpdate(viewModel)
+        viewModel.isUserInfoUpdatedLiveData.observe(viewLifecycleOwner, Observer {
+            progressDialog.dismiss()
+            if (it == null) {
+                Toast.makeText(requireContext(), getString(R.string.error_updating_user_info), Toast.LENGTH_SHORT)
+                    .show()
+                return@Observer
+            }
+            progressDialog.dismiss()
+            Toast.makeText(
+                requireContext(),
+                "${viewModel.userInfo.screenName} registered successfully",
+                Toast.LENGTH_SHORT
+            ).show()
+            startMainActivity(viewModel.userInfo)
         })
 
         binding.selectTagsTv.setOnClickListener { // Initialize alert dialog
@@ -135,42 +118,16 @@ class QuestionnaireFragment : Fragment() {
         }
 
         binding.searchTitle.setOnClickListener {
-            if (binding.formLayout.visibility == View.GONE)
+            if (binding.formLayout.visibility == View.GONE) {
                 binding.formLayout.visibility = View.VISIBLE
+                if(viewModel.userInfo.isLocationSet)
+                    "${viewModel.userInfo.city}, ${viewModel.userInfo.state}".also { binding.searchTitle.text = it }
+                else
+                    binding.searchTitle.text = getString(R.string.set_your_location)
+            }
             else {
                 binding.formLayout.visibility = View.GONE
-                if(binding.addressLine1.text.toString() != "")
-                    binding.searchTitle.text = binding.addressLine1.text
             }
-        }
-
-        binding.btnSubmit.setOnClickListener {
-
-            for (i in (requireActivity() as LoginActivity).tagsArray.indices) {
-                if (selectedTags[i]) finalTags.add((requireActivity() as LoginActivity).tagsArray[i]!!)
-            }
-
-            if (binding.etScreenName.text.isNullOrEmpty()) {
-                Toast.makeText(requireContext(), "Screen Name must not be empty", Toast.LENGTH_SHORT)
-                    .show()
-                return@setOnClickListener
-            } else if (filePath == null) {
-                Toast.makeText(requireContext(), "Profile image must not be empty", Toast.LENGTH_SHORT)
-                    .show()
-                return@setOnClickListener
-            } else if (finalTags.isEmpty()) {
-                Toast.makeText(requireContext(), "Interests must not be empty", Toast.LENGTH_SHORT)
-                    .show()
-                return@setOnClickListener
-            } else if(latitude == 0.0 && longitude == 0.0){
-                Toast.makeText(requireContext(), "Please set your location for distance filter to work", Toast.LENGTH_SHORT)
-                    .show()
-                return@setOnClickListener
-            }
-
-            binding.progressBar.visibility = View.VISIBLE
-
-            viewModel.registerWithEmailAndPw(email, pw)
         }
 
         binding.cardView.setOnClickListener {
@@ -178,8 +135,8 @@ class QuestionnaireFragment : Fragment() {
         }
 
         binding.sliderSearchDistance.addOnChangeListener { slider, value, fromUser ->
-            searchDistance = value.toInt()
-            binding.tvSearchDistance.text = "Search Distance: $searchDistance mi"
+            viewModel.userInfo.searchDistance = value.toInt()
+            "Search Distance: ${viewModel.userInfo.searchDistance} mi".also { binding.tvSearchDistance.text = it }
         }
 
         return binding.root
@@ -228,21 +185,19 @@ class QuestionnaireFragment : Fragment() {
                 mfusedLocationClient.lastLocation.addOnCompleteListener(
                     OnCompleteListener<Location?> { task ->
                         val location = task.result!!
-                        latitude = location.latitude
-                        longitude = location.longitude
+                        viewModel.userInfo.latitude = location.latitude
+                        viewModel.userInfo.longitude = location.longitude
+                        viewModel.userInfo.isLocationSet = true
 
                         val address = geoCodeLocation(location)
-                        binding.addressLine1.setText(
-                            address.line2 + " " + address.line1,
-                            TextView.BufferType.EDITABLE
-                        )
-                        binding.city.setText(address.city, TextView.BufferType.EDITABLE)
-                        binding.state.text = address.state
-                        binding.zip.setText(address.zip, TextView.BufferType.EDITABLE)
+
+                        viewModel.userInfo.city = address.city
+                        viewModel.userInfo.state = address.state
+                        binding.searchTitle.text = "${viewModel.userInfo.city}, ${viewModel.userInfo.state}"
                     }
                 )
             } else {
-                Toast.makeText(requireContext(), "Turn on location", Toast.LENGTH_LONG).show()
+                Toast.makeText(requireContext(), getString(R.string.turn_on_location), Toast.LENGTH_LONG).show()
 
                 val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
                 startActivity(intent)
@@ -256,6 +211,7 @@ class QuestionnaireFragment : Fragment() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.DONUT)
     private fun geoCodeLocation(location: Location): Address {
         val geocoder = Geocoder(context, Locale.getDefault())
         return geocoder.getFromLocation(location.latitude, location.longitude, 1)
@@ -282,14 +238,14 @@ class QuestionnaireFragment : Fragment() {
         if (requestCode == PICK_IMAGE_REQUEST && resultCode == Activity.RESULT_OK && data != null && data.data != null) {
 
             // Get the Uri of data
-            filePath = data.data
+            viewModel.filePath = data.data
             try {
 
                 // Setting image on image view using Bitmap
                 val bitmap = MediaStore.Images.Media
                     .getBitmap(
                         requireActivity().contentResolver,
-                        filePath
+                        viewModel.filePath
                     )
                 Glide.with(requireContext())
                     .load(bitmap)
@@ -311,38 +267,18 @@ class QuestionnaireFragment : Fragment() {
         intent.type = "image/*"
         intent.action = Intent.ACTION_GET_CONTENT
         startActivityForResult(
-            Intent.createChooser(intent, "Select Image from here..."),
+            Intent.createChooser(intent, getString(R.string.select_image_from_here)),
             PICK_IMAGE_REQUEST
         )
     }
 
-    private fun loadUserInfoIntoModelAndSendUpdate(
-        viewModel: AuthViewModel
-    ) {
-
-        userInfo = UserInfo(
-            FirebaseAuth.getInstance().currentUser!!.uid,
-            binding.etScreenName.text.toString(),
-            latitude,
-            longitude,
-            binding.addressLine1.text.toString(),
-            binding.addressLine2.text.toString(),
-            binding.city.text.toString(),
-            binding.state.text.toString(),
-            binding.zip.text.toString(),
-            searchDistance,
-            finalTags
-        )
-        println(userInfo.interests)
-
-        viewModel.uploadProfileImg(userInfo.uid, filePath!!)
-
-    }
 
     private fun buildSelectTagsDialog(builder: AlertDialog.Builder, selectedTags: BooleanArray) {
 
+        var tagsList: ArrayList<Int> = ArrayList()
+
         // set title
-        builder.setTitle("Select Categories")
+        builder.setTitle(getString(R.string.select_categories))
 
         // set dialog non cancelable
         builder.setCancelable(false)
@@ -364,7 +300,7 @@ class QuestionnaireFragment : Fragment() {
                 }
             })
 
-        builder.setPositiveButton("OK",
+        builder.setPositiveButton(getString(R.string.ok),
             DialogInterface.OnClickListener { dialogInterface, i -> // Initialize string builder
                 val stringBuilder = StringBuilder()
 
@@ -387,16 +323,20 @@ class QuestionnaireFragment : Fragment() {
                     }
                 }
 
+                for (i in (requireActivity() as LoginActivity).tagsArray.indices) {
+                    if (selectedTags[i]) viewModel.userInfo.interests.add((requireActivity() as LoginActivity).tagsArray[i]!!)
+                }
+
                 // set text on textView
                 binding.selectTagsTv.text = stringBuilder.toString()
             })
 
-        builder.setNegativeButton("Cancel",
+        builder.setNegativeButton(requireContext().getString(R.string.cancel),
             DialogInterface.OnClickListener { dialogInterface, i -> // dismiss dialog
                 dialogInterface.dismiss()
             })
 
-        builder.setNeutralButton("Clear All",
+        builder.setNeutralButton(getString(R.string.clear_all),
             DialogInterface.OnClickListener { dialogInterface, i ->
 
                 // use for loop
@@ -408,6 +348,7 @@ class QuestionnaireFragment : Fragment() {
                     // clear text view value
                     binding.selectTagsTv.text = ""
                 }
+                viewModel.userInfo.interests.clear()
             })
 
     }
@@ -418,6 +359,7 @@ class QuestionnaireFragment : Fragment() {
         val intent = Intent(requireContext(), MainActivity::class.java)
         intent.putExtra("user_info", userInfo)
         intent.putExtra("categories", (requireActivity() as LoginActivity).tagsArray)
+        intent.putExtra("conditions", (requireActivity() as LoginActivity).conditions)
         startActivity(intent)
     }
 }

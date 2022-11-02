@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -17,7 +16,6 @@ import com.example.collectorconnector.models.Conversation
 class ConversationsFragment : Fragment(), ConversationsAdapter.OnItemClickListener {
 
     private lateinit var binding: FragmentConversationsBinding
-
     val viewModel: MainViewModel by viewModels()
 
     override fun onCreateView(
@@ -27,20 +25,39 @@ class ConversationsFragment : Fragment(), ConversationsAdapter.OnItemClickListen
     ): View? {
         binding =
             DataBindingUtil.inflate(inflater, R.layout.fragment_conversations, container, false)
+        binding.lifecycleOwner = viewLifecycleOwner
+        binding.viewModel = viewModel
         val activity = (requireActivity() as MainActivity)
         activity.binding.toolbar.navigationIcon = null
-        binding.conversationsRecycler.adapter = activity.conversationsAdapter
-        if (activity.conversations.isEmpty()){
-            binding.tvNoResults.visibility = View.VISIBLE
+        val conversationsAdapter = ConversationsAdapter(arrayListOf(), this)
+        binding.conversationsRecycler.adapter = conversationsAdapter
+        viewModel.getConversationsForUser(activity.currentUser!!.uid)
+        viewModel.conversationsLiveData.observe(viewLifecycleOwner){
+            if(it == null){
+                binding.tvNoResults.text = getString(R.string.error_retriveing_conversation)
+                binding.tvNoResults.visibility = View.VISIBLE
+                return@observe
+            }
+            else
+                binding.tvNoResults.visibility = View.GONE
+
+            if(it.documents.isEmpty()){
+                binding.tvNoResults.text = getString(R.string.have_started_conversations)
+                binding.tvNoResults.visibility = View.VISIBLE
+                return@observe
+            }
+            else
+                binding.tvNoResults.visibility = View.GONE
         }
-
-
         return binding.root
     }
 
-    override fun onItemClick(position: Int) {
+    override fun onItemClick(conversation: Conversation) {
 
-
+        findNavController().navigate(
+            ConversationsFragmentDirections.actionConversationsFragmentToMessageFragment(
+                conversation.otherUserId
+            )
+        )
     }
-
 }

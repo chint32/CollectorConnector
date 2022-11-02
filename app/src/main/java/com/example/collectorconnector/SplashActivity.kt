@@ -2,12 +2,8 @@ package com.example.collectorconnector
 
 import android.animation.Animator
 import android.content.Intent
-import android.graphics.Typeface
 import android.os.Bundle
 import android.util.Log
-import android.view.View
-import android.widget.TextView
-import android.widget.Toolbar
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.airbnb.lottie.LottieAnimationView
@@ -19,9 +15,10 @@ import com.example.collectorconnector.databinding.ActivitySplashBinding
 class SplashActivity: AppCompatActivity() {
     private lateinit var binding: ActivitySplashBinding
     private val viewModel: AuthViewModel by viewModels()
-    private lateinit var tagsArray: Array<String?>
     private var isAnimOver = false
-    private var isTagsDownloaded = false
+    private var isStartingDataDownloaded = false
+    private lateinit var tagsArray: Array<String?>
+    private lateinit var conditions: Array<String?>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,17 +26,21 @@ class SplashActivity: AppCompatActivity() {
         setContentView(binding.root)
         supportActionBar!!.hide()
 
-        viewModel.collectibleCategoriesLiveData.observe(this){
+        viewModel.appStartingDataLiveData.observe(this){
             if(it == null)  return@observe
-            if(it.data.isNullOrEmpty()) return@observe
-            val tagsArrayList = (it.get("categories") as ArrayList<String>)
-            tagsArray = arrayOfNulls<String>(tagsArrayList.size)
-            for(i in tagsArrayList.indices)
-                tagsArray[i] = tagsArrayList[i]
-            isTagsDownloaded = true
+            tagsArray = arrayOfNulls<String>(it.first.size)
+            for(i in it.first.indices)
+                tagsArray[i] = it.first[i]
+            conditions = arrayOfNulls<String>(it.second.size)
+            for(i in it.second.indices)
+                conditions[i] = it.second[i]
+
+            isStartingDataDownloaded = true
             if(isAnimOver) startLoginActivity()
         }
-        viewModel.getCollectibleCategories()
+        viewModel.getAppStartingData()
+
+
 
         val splashAnim = findViewById<LottieAnimationView>(R.id.splash_anim)
         splashAnim.addAnimatorListener(object : Animator.AnimatorListener {
@@ -50,7 +51,7 @@ class SplashActivity: AppCompatActivity() {
             override fun onAnimationEnd(animation: Animator?) {
                 Log.e("Animation:", "end")
                 isAnimOver = true
-                if(isTagsDownloaded) startLoginActivity()
+                if(isStartingDataDownloaded) startLoginActivity()
             }
 
             override fun onAnimationCancel(animation: Animator?) {
@@ -69,6 +70,7 @@ class SplashActivity: AppCompatActivity() {
 
         val intent = Intent(this@SplashActivity, LoginActivity::class.java)
         intent.putExtra("categories", tagsArray)
+        intent.putExtra("conditions", conditions)
         startActivity(intent)
     }
 }

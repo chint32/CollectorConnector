@@ -1,6 +1,5 @@
 package com.example.collectorconnector.main
 
-import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -13,7 +12,6 @@ import androidx.navigation.fragment.findNavController
 import com.example.collectorconnector.R
 import com.example.collectorconnector.databinding.FragmentCollectibleDetailsBinding
 import com.example.collectorconnector.models.Collectible
-import com.example.collectorconnector.models.FavoriteCollectible
 
 
 class CollectibleDetailsFragment : Fragment() {
@@ -25,13 +23,14 @@ class CollectibleDetailsFragment : Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         binding = DataBindingUtil.inflate(
             inflater,
             R.layout.fragment_collectible_details,
             container,
             false
         )
+        binding.lifecycleOwner = viewLifecycleOwner
         val activity = (requireActivity() as MainActivity)
 
         activity.binding.toolbar.navigationIcon =
@@ -41,39 +40,56 @@ class CollectibleDetailsFragment : Fragment() {
         }
 
         val collectible = requireArguments().get("collectible") as Collectible
+        viewModel.collectible = collectible
+        binding.viewModel = viewModel
 
-
-        loadDataIntoViews(collectible)
-        if ((requireActivity() as MainActivity).currentUser!!.uid != collectible.ownerId) {
+        if (activity.currentUser!!.uid != collectible.ownerId) {
             binding.ivFavorite.visibility = View.VISIBLE
-            binding.btnMessageOwner.visibility = View.VISIBLE
-            var views = collectible.timesViewed.toInt()
-            views++
-            collectible.timesViewed = views.toString()
-
-            viewModel.isCollectibleUpdatedLiveData.observe(viewLifecycleOwner) {
-                if (!it)
-                    Toast.makeText(
-                        requireContext(),
-                        "Error updating collectible views",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                loadDataIntoViews(collectible)
+            if(activity.userInfo.favoriteCollectibles.contains(collectible)) {
+                binding.ivFavorite.setImageResource(R.drawable.ic_baseline_favorite_24)
+                binding.ivFavorite.tag = "fav"
+            }
+            else {
+                binding.ivFavorite.setImageResource(R.drawable.ic_baseline_favorite_border_24)
+                binding.ivFavorite.tag = "not fav"
             }
 
-            viewModel.updateCollectible(collectible)
-        } else {
-            binding.ivFavorite.visibility = View.GONE
-            binding.btnMessageOwner.visibility = View.GONE
+            viewModel.getUserInfo(collectible.ownerId)
+            viewModel.userInfoLiveData.observe(viewLifecycleOwner){
+                if(it == null){
+                    Toast.makeText(requireContext(), getString(R.string.error_getting_user_info), Toast.LENGTH_SHORT).show()
+                    return@observe
+                }
+                viewModel.updateCollectibleViews(it, collectible)
+            }
         }
+        else {
+            binding.ivFavorite.visibility = View.GONE
+        }
+        if(activity.currentUser.uid == collectible.ownerId){
+            binding.btnMessageOwner.visibility = View.GONE
+        } else {
+            binding.btnMessageOwner.visibility = View.VISIBLE
+
+        }
+
+        viewModel.collectibleDeletedLiveData.observe(viewLifecycleOwner){
+            if(it) {
+                binding.ivFavorite.visibility = View.GONE
+                binding.tvNumViews.visibility = View.GONE
+                binding.collectibleImg.setBackgroundResource(R.drawable.content_deleted)
+            }
+
+
+        }
+
 
         binding.btnMessageOwner.setOnClickListener {
             (requireActivity() as MainActivity).binding.bottomNavigationView.selectedItemId
             findNavController().navigate(
-                CollectibleDetailsFragmentDirections
-                    .actionCollectibleDetailsFragmentToMessageFragment(
-                        collectible.ownerId
-                    )
+                CollectibleDetailsFragmentDirections.actionCollectibleDetailsFragmentToMessageFragment(
+                    collectible.ownerId
+                )
             )
         }
 
@@ -86,50 +102,19 @@ class CollectibleDetailsFragment : Fragment() {
         }
         binding.ivFavorite.setOnClickListener {
 
-            val favCollectible = FavoriteCollectible(
-                collectible.uid,
-                collectible.ownerId
-            )
             if(binding.ivFavorite.tag == "fav"){
-                activity.userInfo.favoriteCollectibles.remove(favCollectible)
+                activity.userInfo.favoriteCollectibles.remove(collectible)
                 binding.ivFavorite.setImageResource(R.drawable.ic_baseline_favorite_border_24)
                 binding.ivFavorite.tag = "not fav"
             } else {
-                activity.userInfo.favoriteCollectibles.add(favCollectible)
+                activity.userInfo.favoriteCollectibles.add(collectible)
                 binding.ivFavorite.setImageResource(R.drawable.ic_baseline_favorite_24)
                 binding.ivFavorite.tag = "fav"
             }
 
-            viewModel.updateUserInfo(activity.userInfo)
+            viewModel.updateProfile(activity.userInfo, null)
         }
 
         return binding.root
-    }
-
-    private fun loadDataIntoViews(collectible: Collectible) {
-        binding.collectibleImg.setImageBitmap(
-            BitmapFactory.decodeByteArray(
-                collectible.imageByteArray,
-                0,
-                collectible.imageByteArray!!.size
-            )
-        )
-        binding.tvNumViews.text = collectible.timesViewed
-        binding.tvCollectibleName.text = collectible.name
-        binding.tvCollectibleDesc.text = collectible.description
-        binding.tvCollectibleCond.text = collectible.condition
-        binding.tvCollectibleTags.text = collectible.tags.toString()
-
-        val favCollectible = FavoriteCollectible(
-            collectible.uid, collectible.ownerId
-        )
-
-        if((requireActivity() as MainActivity).userInfo.favoriteCollectibles.contains(favCollectible)){
-            binding.ivFavorite.setImageResource(R.drawable.ic_baseline_favorite_24)
-            binding.ivFavorite.tag = "fav"
-        } else {
-            binding.ivFavorite.setImageResource(R.drawable.ic_baseline_favorite_border_24)
-            binding.ivFavorite.tag = "not fav"
-        }
     }
 }

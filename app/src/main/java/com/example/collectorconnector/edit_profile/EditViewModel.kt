@@ -1,84 +1,100 @@
 package com.example.collectorconnector.edit_profile
 
+import android.app.Application
 import android.net.Uri
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import android.view.View
+import android.widget.Toast
+import androidx.lifecycle.*
+import com.example.collectorconnector.R
+import com.example.collectorconnector.models.Collectible
 import com.example.collectorconnector.models.UserInfo
 import com.example.collectorconnector.repository.FirebaseRepository
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.storage.ListResult
 import com.google.firebase.storage.StorageMetadata
 
 import kotlinx.coroutines.launch
+import java.util.*
+import kotlin.collections.ArrayList
 
-class EditViewModel: ViewModel() {
+class EditViewModel(application: Application) : AndroidViewModel(application) {
+
+    val app = application
     private val repository: FirebaseRepository = FirebaseRepository
 
-    private val _isUserInfoUpdatedLiveData = MutableLiveData<Boolean>()
-    val isUserInfoUpdatedLiveData: LiveData<Boolean>
+    var showProgressBar = MutableLiveData<Boolean>()
+    val collectible = Collectible()
+    var userInfo = UserInfo()
+
+
+    private val _isUserInfoUpdatedLiveData = MutableLiveData<UserInfo?>()
+    val isUserInfoUpdatedLiveData: LiveData<UserInfo?>
         get() = _isUserInfoUpdatedLiveData
 
-    fun updateUserInfo(userInfo: UserInfo){
+    fun updateProfile(userInfo: UserInfo, filepath: Uri?){
         viewModelScope.launch {
-            _isUserInfoUpdatedLiveData.value = repository.updateUserInfo(userInfo)
+
+
+            if (userInfo.screenName.isEmpty()) {
+                Toast.makeText(app, app.getString(R.string.empty_screen_name_toast), Toast.LENGTH_SHORT)
+                    .show()
+                return@launch
+            } else if (userInfo.interests.isEmpty()) {
+                Toast.makeText(app, app.getString(R.string.empty_interests_toast), Toast.LENGTH_SHORT)
+                    .show()
+                return@launch
+            }
+            showProgressBar.value = true
+            _isUserInfoUpdatedLiveData.value = repository.updateProfile(userInfo, filepath)
         }
     }
 
-    private val _isCollectibleDeletedLiveData = MutableLiveData<Boolean>()
-    val isCollectibleDeletedLiveData: LiveData<Boolean>
+    private val _isCollectibleDeletedLiveData = MutableLiveData<Collectible>()
+    val isCollectibleDeletedLiveData: LiveData<Collectible>
         get() = _isCollectibleDeletedLiveData
 
-    fun deleteCollectible(userId: String, collectibleId: String){
+    fun deleteCollectible(userInfo: UserInfo, collectible:Collectible){
         viewModelScope.launch {
-            _isCollectibleDeletedLiveData.value = repository.deleteCollectible(userId, collectibleId)
+            _isCollectibleDeletedLiveData.value = repository.deleteCollectible(userInfo, collectible)
         }
     }
 
-    private val _isCollectibleAddedLiveData = MutableLiveData<Boolean>()
-    val isCollectibleAddedLiveData: LiveData<Boolean>
+    private val _isCollectibleAddedLiveData = MutableLiveData<Collectible?>()
+    val isCollectibleAddedLiveData: LiveData<Collectible?>
         get() = _isCollectibleAddedLiveData
 
-    fun addCollectible(userId: String, collectibleId: String, filePath: Uri, metadata: StorageMetadata){
+    fun addCollectible(name: String, description: String, condition: String, filepath: Uri?){
         viewModelScope.launch {
-            _isCollectibleAddedLiveData.value = repository.addCollectible(userId, collectibleId, filePath, metadata)
-        }
-    }
 
-    private val _collectiblesLiveData = MutableLiveData<ListResult?>()
-    val collectiblesLiveData: LiveData<ListResult?>
-        get() = _collectiblesLiveData
+            if (filepath == null) {
+                Toast.makeText(app, app.getString(R.string.collectible_must_have_image), Toast.LENGTH_SHORT).show()
+                return@launch
+            } else if (name.length < 4  || name.length > 40) {
+                Toast.makeText(app, app.getString(R.string.screen_name_req_toast), Toast.LENGTH_SHORT).show()
+                return@launch
+            } else if (description.length < 4 || description.length > 300) {
+                Toast.makeText(app, app.getString(R.string.description_req_toast), Toast.LENGTH_SHORT)
+                    .show()
+                return@launch
+            } else if (condition.isEmpty()) {
+                Toast.makeText(app, app.getString(R.string.collectible_must_have_condition), Toast.LENGTH_SHORT)
+                    .show()
+                return@launch
+            } else if (collectible.tags.isEmpty()) {
+                Toast.makeText(app, app.getString(R.string.collectible_must_have_tag), Toast.LENGTH_SHORT).show()
+                return@launch
+            }
 
-    fun getCollectiblesByUid(uid: String){
-        viewModelScope.launch {
-            _collectiblesLiveData.value = repository.getCollectiblesByUserId(uid)
-        }
-    }
-    fun clearCollectiblesLiveData(){
-        if(_collectiblesLiveData.value != null){
-            _collectiblesLiveData.value = null
-        }
-    }
+            showProgressBar.value = true
 
-    private val _isProfileImgUploadedLiveData = MutableLiveData<String?>()
-    val isProfileImgUploadedLiveData: LiveData<String?>
-        get() = _isProfileImgUploadedLiveData
+            collectible.uid = UUID.randomUUID().toString()
+            collectible.name = name
+            collectible.description = description
+            collectible.condition = condition
+            collectible.ownerId = userInfo.uid
 
-    fun uploadProfileImg(userId: String, filePath: Uri){
-        viewModelScope.launch {
-            _isProfileImgUploadedLiveData.value = repository.addProfileImg(userId, filePath).toString()
-        }
-    }
-
-
-    private val _userInfoLiveData = MutableLiveData<DocumentSnapshot>()
-    val userInfoLiveData: LiveData<DocumentSnapshot>
-        get() = _userInfoLiveData
-
-    fun getUserInfo(uid: String){
-        viewModelScope.launch {
-            _userInfoLiveData.value = repository.getUserInfo(uid)
+            _isCollectibleAddedLiveData.value = repository.addCollectible(userInfo, filepath, collectible)
         }
     }
 }

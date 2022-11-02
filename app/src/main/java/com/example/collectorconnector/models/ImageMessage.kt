@@ -8,5 +8,5 @@ data class ImageMessage(
     override val recipientScreenName: String = "",
     override val time: String = "",
     override val type: String = "",
-    var image: ByteArray? = null
+    var imageUrl: String = ""
 ) : Message(messageId, senderId, recipientId, time, type)

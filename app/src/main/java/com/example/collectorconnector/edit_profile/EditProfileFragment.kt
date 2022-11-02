@@ -3,12 +3,12 @@ package com.example.collectorconnector.edit_profile
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.ProgressDialog
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.location.Location
-import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
 import android.provider.Settings
@@ -34,8 +34,8 @@ import com.example.collectorconnector.models.UserInfo
 import com.example.collectorconnector.util.Constants.PICK_IMAGE_REQUEST
 import com.example.collectorconnector.util.Constants.REQUEST_LOCATION_PERMISSION
 import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import com.google.android.gms.tasks.OnCompleteListener
-import com.google.firebase.auth.FirebaseAuth
 import java.io.IOException
 import java.util.*
 import kotlin.collections.ArrayList
@@ -44,19 +44,6 @@ class EditProfileFragment : Fragment() {
 
     private lateinit var binding: FragmentEditProfileBinding
     private lateinit var mfusedLocationClient: FusedLocationProviderClient
-    private var latitude = 0.0
-    private var longitude = 0.0
-    private var searchDistance = 0
-
-    private lateinit var tagsArray: Array<String?>
-    private var tagsList: ArrayList<Int> = ArrayList()
-    private val finalTags = ArrayList<String>()
-
-
-    // Uri indicates, where the image will be picked from
-    private var filePath: Uri? = null
-
-    private lateinit var userInfo: UserInfo
     val viewModel: EditViewModel by viewModels()
 
 
@@ -64,100 +51,71 @@ class EditProfileFragment : Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         binding =
             DataBindingUtil.inflate(inflater, R.layout.fragment_edit_profile, container, false)
+        binding.lifecycleOwner = viewLifecycleOwner
+        binding.viewModel = viewModel
 
         val activity = (requireActivity() as EditProfileActivity)
-        tagsArray = activity.intent.extras!!.get("categories") as Array<String?>
+        val tagsArray = activity.intent.extras!!.get("categories") as Array<String?>
 
-        userInfo = activity.intent.extras!!.get("user_info") as UserInfo
+        viewModel.userInfo = activity.intent.extras!!.get("user_info") as UserInfo
+
         val selectedTags = BooleanArray(tagsArray.size)
         // initially check the tags the user is interested in
         for (i in selectedTags.indices) {
             selectedTags[i] = false
-            for(interest in userInfo.interests) {
+            for(interest in viewModel.userInfo.interests) {
                 if(interest == tagsArray[i]) selectedTags[i] = true
             }
         }
-        binding.etScreenName.setText(userInfo.screenName)
-        binding.tvSearchDistance.text = "Search Distance: ${userInfo.searchDistance} mi"
-        binding.selectTagsTv.text = userInfo.interests.toString()
-        binding.addressLine1.text = userInfo.addressLine1
-        binding.searchTitle.text = userInfo.addressLine1
-        binding.addressLine2.text = userInfo.addressLine2
-        binding.city.text = userInfo.city
-        binding.state.text = userInfo.state
-        binding.zip.text = userInfo.zip
-        binding.sliderSearchDistance.value = userInfo.searchDistance.toFloat()
-        latitude = userInfo.latitude
-        longitude = userInfo.longitude
-        searchDistance = userInfo.searchDistance
-
-
-        Glide.with(requireContext())
-            .asBitmap()
-            .load(userInfo.profileImgUrl)
-            .circleCrop()
-            .into(binding.profilePic)
-
 
         //back to MainActivity should refresh it. So, create new MainActivity here and open it.
         requireActivity().onBackPressedDispatcher.addCallback(
             viewLifecycleOwner,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    startMainActivity(userInfo)
+                    startMainActivity(viewModel.userInfo, tagsArray)
                 }
             }
         )
 
+        val progressDialog = ProgressDialog(requireContext())
+        progressDialog.setTitle(getString(R.string.uploading_profile_info))
+        progressDialog.setCancelable(false)
+
+        viewModel.showProgressBar.observe(viewLifecycleOwner) {
+            if (it) progressDialog.show()
+        }
+
         // observe whether or not user info is successfully updated
         viewModel.isUserInfoUpdatedLiveData.observe(viewLifecycleOwner, Observer {
             binding.progressBar.visibility = View.GONE
-            if (!it) {
-                Toast.makeText(requireContext(), "Error updating user info", Toast.LENGTH_SHORT)
+            if (it == null) {
+                Toast.makeText(requireContext(), getString(R.string.error_updating_user_info), Toast.LENGTH_SHORT)
                     .show()
                 return@Observer
             }
-            startMainActivity(userInfo)
+            progressDialog.dismiss()
+            startMainActivity(viewModel.userInfo, tagsArray)
         })
 
-        // observe whether or not user profile image is successfully uploaded or not
-        viewModel.isProfileImgUploadedLiveData.observe(viewLifecycleOwner, Observer {
-            binding.progressBar.visibility = View.GONE
-            if (it == null) {
-                Toast.makeText(
-                    requireContext(),
-                    "Error uploading profile image",
-                    Toast.LENGTH_SHORT
-                ).show()
-                return@Observer
-            }
-            userInfo.profileImgUrl = it
-            viewModel.updateUserInfo(userInfo)
-
-        })
-
-        val builder: AlertDialog.Builder = AlertDialog.Builder(requireContext())
         binding.selectTagsTv.setOnClickListener(View.OnClickListener { // Initialize alert dialog
-            buildSelectTagsDialog(builder, tagsArray, selectedTags)
+            buildSelectTagsDialog(tagsArray, selectedTags, tagsArray)
         })
 
         binding.searchTitle.setOnClickListener {
             if (binding.formLayout.visibility == View.GONE) {
                 binding.formLayout.visibility = View.VISIBLE
-                binding.cardView.visibility = View.GONE
-                binding.searchTitle.text = binding.addressLine1.text
+                if(viewModel.userInfo.isLocationSet)
+                    binding.searchTitle.text = "${viewModel.userInfo.city}, ${viewModel.userInfo.state}"
+                else
+                    binding.searchTitle.text = getString(R.string.set_your_location)
             }
             else {
                 binding.formLayout.visibility = View.GONE
-                binding.cardView.visibility = View.VISIBLE
             }
-        }
-
-        binding.btnSubmitProfile.setOnClickListener {
-            loadUserInfoIntoModelAndSendUpdate(viewModel, selectedTags)
         }
 
         binding.cardView.setOnClickListener {
@@ -169,8 +127,15 @@ class EditProfileFragment : Fragment() {
         }
 
         binding.sliderSearchDistance.addOnChangeListener { slider, value, fromUser ->
-            searchDistance = value.toInt()
-            binding.tvSearchDistance.text = "Search Distance: $searchDistance mi"
+            viewModel.userInfo.searchDistance = value.toInt()
+            "Search Distance: ${value.toInt()} mi".also { binding.tvSearchDistance.text = it }
+        }
+
+        mfusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity())
+        binding.btnSetLocation.setOnClickListener {
+            if (isPermissionGranted())
+                getLocation()
+            else checkLocationPermissions()
         }
 
         return binding.root
@@ -195,14 +160,14 @@ class EditProfileFragment : Fragment() {
         if (requestCode == PICK_IMAGE_REQUEST && resultCode == Activity.RESULT_OK && data != null && data.data != null) {
 
             // Get the Uri of data
-            filePath = data.data
+            binding.filepath = data.data
             try {
 
                 // Setting image on image view using Bitmap
                 val bitmap = MediaStore.Images.Media
                     .getBitmap(
                         requireActivity().contentResolver,
-                        filePath
+                        binding.filepath
                     )
                 Glide.with(requireContext())
                     .load(bitmap)
@@ -226,60 +191,10 @@ class EditProfileFragment : Fragment() {
         startActivityForResult(
             Intent.createChooser(
                 intent,
-                "Select Image from here..."
+                getString(R.string.select_image_from_here)
             ),
             PICK_IMAGE_REQUEST
         )
-    }
-
-    private fun loadUserInfoIntoModelAndSendUpdate(viewModel: EditViewModel, selectedTags: BooleanArray) {
-
-        for(i in selectedTags.indices)
-            if(selectedTags[i]) finalTags.add(tagsArray[i]!!)
-
-        for(value in finalTags)println(value)
-
-        if (binding.etScreenName.text.isNullOrEmpty()) {
-            Toast.makeText(requireContext(), "Screen Name must not be empty", Toast.LENGTH_SHORT)
-                .show()
-            return
-        } else if (finalTags.isEmpty()) {
-            Toast.makeText(requireContext(), "Interests must not be empty", Toast.LENGTH_SHORT)
-                .show()
-            return
-        }
-
-        binding.progressBar.visibility = View.VISIBLE
-
-        userInfo = UserInfo(
-            FirebaseAuth.getInstance().currentUser!!.uid,
-            binding.etScreenName.text.toString(),
-            latitude,
-            longitude,
-            binding.addressLine1.text.toString(),
-            binding.addressLine2.text.toString(),
-            binding.city.text.toString(),
-            binding.state.text.toString(),
-            binding.zip.text.toString(),
-            searchDistance,
-            finalTags,
-            userInfo.totalRatingStars,
-            userInfo.totalRates,
-            userInfo.rating,
-            userInfo.profileImgUrl,
-            userInfo.favoriteCollectibles
-        )
-
-
-
-        if(filePath == null)
-            viewModel.updateUserInfo(userInfo)
-        else
-            viewModel.uploadProfileImg(userInfo.uid, filePath!!)
-
-
-
-
     }
 
 
@@ -326,19 +241,19 @@ class EditProfileFragment : Fragment() {
                 mfusedLocationClient.lastLocation.addOnCompleteListener(
                     OnCompleteListener<Location?> { task ->
                         val location = task.result!!
-                        latitude = location.latitude
-                        longitude = location.longitude
+                        viewModel.userInfo.latitude = location.latitude
+                        viewModel.userInfo.longitude = location.longitude
                         val address = geoCodeLocation(location)
-                        binding.addressLine1.text =
-                            address.line2 + " " + address.line1
-                        binding.city.text = address.city
-                        binding.zip.text = address.zip
-                        binding.state.text = address.state
 
+                        viewModel.userInfo.city = address.city
+                        viewModel.userInfo.state = address.state
+                        binding.searchTitle.text = "${viewModel.userInfo.city}, ${viewModel.userInfo.state}"
+
+                        viewModel.userInfo.isLocationSet = true
                     }
                 )
             } else {
-                Toast.makeText(requireContext(), "Turn on location", Toast.LENGTH_LONG).show()
+                Toast.makeText(requireContext(), getString(R.string.turn_on_location), Toast.LENGTH_LONG).show()
 
                 val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
                 startActivity(intent)
@@ -367,10 +282,12 @@ class EditProfileFragment : Fragment() {
             .first()
     }
 
-    private fun buildSelectTagsDialog(builder: AlertDialog.Builder, tags: Array<String?>, selectedTags:BooleanArray) {
+    private fun buildSelectTagsDialog(tags: Array<String?>, selectedTags:BooleanArray, tagsArray: Array<String?>, ) {
 
-        builder.setTitle("Select Categories")
+        val builder: AlertDialog.Builder = AlertDialog.Builder(requireContext())
+        builder.setTitle(getString(R.string.select_categories))
         builder.setCancelable(false)
+        val tagsList = ArrayList<Int>()
 
         builder.setMultiChoiceItems(tags, selectedTags,
             DialogInterface.OnMultiChoiceClickListener { dialogInterface, i, b ->
@@ -388,15 +305,17 @@ class EditProfileFragment : Fragment() {
                 }
             })
 
-        builder.setPositiveButton("OK",
+        builder.setPositiveButton(getString(R.string.ok),
             DialogInterface.OnClickListener { dialogInterface, i -> // Initialize string builder
                 val stringBuilder = StringBuilder()
                 var finalString = ""
+                viewModel.userInfo.interests.clear()
 
                 if(tagsList.size > 0) {
                     // use for loop
                     for (j in 0 until tagsList.size) {
                         // concat array value
+                            viewModel.userInfo.interests.add(tags.get(tagsList.get(j))!!)
                         stringBuilder.append(tags.get(tagsList.get(j)))
                         // check condition
                         if (j != tagsList.size - 1) {
@@ -418,13 +337,14 @@ class EditProfileFragment : Fragment() {
                 binding.selectTagsTv.text = finalString
             })
 
-        builder.setNegativeButton("Cancel",
+        builder.setNegativeButton(getString(R.string.cancel),
             DialogInterface.OnClickListener { dialogInterface, i -> // dismiss dialog
                 dialogInterface.dismiss()
             })
 
-        builder.setNeutralButton("Clear All",
+        builder.setNeutralButton(getString(R.string.clear_all),
             DialogInterface.OnClickListener { dialogInterface, i ->
+                viewModel.userInfo.interests.clear()
 
                 // use for loop
                 for (j in 0 until selectedTags.size) {
@@ -441,12 +361,11 @@ class EditProfileFragment : Fragment() {
 
     }
 
-    private fun startMainActivity( userInfo: UserInfo){
-
-
+    private fun startMainActivity( userInfo: UserInfo, tagsArray: Array<String?>){
         val intent = Intent(requireContext(), MainActivity::class.java)
         intent.putExtra("user_info", userInfo)
         intent.putExtra("categories",tagsArray)
+        intent.putExtra("conditions", (requireActivity() as EditProfileActivity).conditions)
         startActivity(intent)
     }
 }

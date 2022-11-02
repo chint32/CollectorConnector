@@ -37,6 +37,7 @@ class EditProfileActivity : AppCompatActivity() {
     lateinit var userInfo: UserInfo
     val viewModel: EditViewModel by viewModels()
     lateinit var tagsArray: Array<String?>
+    lateinit var conditions: Array<String?>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,6 +70,7 @@ class EditProfileActivity : AppCompatActivity() {
         //get user info passed from MainActivity
         userInfo = intent.extras!!.get("user_info") as UserInfo
         tagsArray = intent.extras!!.get("categories") as Array<String?>
+        conditions = intent.extras!!.get("conditions") as Array<String?>
 
 
         //binding.progressBar.visibility = View.VISIBLE
@@ -77,6 +79,7 @@ class EditProfileActivity : AppCompatActivity() {
     private fun startLoginActivity() {
         val intent = Intent(this, LoginActivity::class.java)
         intent.putExtra("categories", tagsArray)
+        intent.putExtra("conditions", conditions)
         startActivity(intent)
     }
 
@@ -86,6 +89,7 @@ class EditProfileActivity : AppCompatActivity() {
         val intent = Intent(this, MainActivity::class.java)
         intent.putExtra("user_info", userInfo)
         intent.putExtra("categories",tagsArray)
+        intent.putExtra("conditions", conditions)
         startActivity(intent)
     }
 

@@ -60,6 +60,9 @@
         <action
             android:id="@+id/action_messageFragment_self"
             app:destination="@id/messageFragment" />
+        <action
+            android:id="@+id/action_messageFragment_to_collectibleDetailsFragment"
+            app:destination="@id/collectibleDetailsFragment" />
     </fragment>
     <fragment
         android:id="@+id/favoritesFragment"

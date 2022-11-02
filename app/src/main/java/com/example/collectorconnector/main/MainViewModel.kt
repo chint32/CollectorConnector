@@ -9,7 +9,6 @@ import com.example.collectorconnector.models.*
 import com.example.collectorconnector.repository.FirebaseRepository
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.QuerySnapshot
-import com.google.firebase.storage.ListResult
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
@@ -17,54 +16,31 @@ class MainViewModel : ViewModel() {
 
     private val repository: FirebaseRepository = FirebaseRepository
 
-    private val _thisUsersCollectiblesLiveData = MutableLiveData<ListResult?>()
-    val thisUsersCollectiblesLiveData: LiveData<ListResult?>
-        get() = _thisUsersCollectiblesLiveData
+    var userInfo = UserInfo()
+    val collectibleDeletedLiveData = MutableLiveData<Boolean>()
+    var collectible = Collectible()
 
+    private val _mainFeedCollectiblesNearLiveData = MutableLiveData<ArrayList<Collectible>?>()
+    val mainFeedCollectiblesNearLiveData: LiveData<ArrayList<Collectible>?>
+        get() = _mainFeedCollectiblesNearLiveData
 
-    fun getThisUsersCollectibles(userId: String) {
+    private val _mainFeedCollectiblesFarLiveData = MutableLiveData<ArrayList<Collectible>?>()
+    val mainFeedCollectiblesFarLiveData: LiveData<ArrayList<Collectible>?>
+        get() = _mainFeedCollectiblesFarLiveData
+
+    val showDistanceLabel = MutableLiveData<Pair<Boolean, Boolean>>()
+
+    fun getMainFeedCollectibles(userInfo: UserInfo,
+                                isUsingSearch: Boolean,
+                                searchValue: String?,
+                                tagsList: ArrayList<String>?,
+                                conditionsList: ArrayList<String>?
+                                ){
         viewModelScope.launch {
-            _thisUsersCollectiblesLiveData.value = repository.getCollectiblesByUserId(userId)
-        }
-    }
-
-    private val _otherUsersCollectiblesLiveData = MutableLiveData<ListResult?>()
-    val otherUsersCollectiblesLiveData: LiveData<ListResult?>
-        get() = _otherUsersCollectiblesLiveData
-
-    fun getOtherUsersCollectibles(userId: String) {
-        viewModelScope.launch {
-            _otherUsersCollectiblesLiveData.value = repository.getCollectiblesByUserId(userId)
-        }
-    }
-
-    private val _usersWithCollectiblesLiveData = MutableLiveData<ListResult?>()
-    val usersWithCollectiblesLiveData: LiveData<ListResult?>
-        get() = _usersWithCollectiblesLiveData
-
-    fun getAllUsersWithCollectibles() {
-        viewModelScope.launch {
-            _usersWithCollectiblesLiveData.value = repository.getAllUsersWithCollectibles()
-        }
-    }
-
-    private var _searchFeedCollectiblesLiveData = MutableLiveData<ListResult?>()
-    val searchFeedCollectiblesLiveData: LiveData<ListResult?>
-        get() = _searchFeedCollectiblesLiveData
-
-    fun getSearchFeedCollectiblesByUid(uid: String) {
-        viewModelScope.launch {
-            _searchFeedCollectiblesLiveData.value = repository.getCollectiblesByUserId(uid)
-        }
-    }
-
-    private val _mainFeedCollectiblesLiveData = MutableLiveData<ListResult?>()
-    val mainFeedCollectiblesLiveData: LiveData<ListResult?>
-        get() = _mainFeedCollectiblesLiveData
-
-    fun getMainFeedCollectiblesByUid(uid: String) {
-        viewModelScope.launch {
-            _mainFeedCollectiblesLiveData.value = repository.getCollectiblesByUserId(uid)
+            val result =  repository.getMainFeed(userInfo, isUsingSearch, searchValue, tagsList, conditionsList)!!
+            showDistanceLabel.value = Pair(result.first.isNotEmpty(), result.second.isNotEmpty())
+            _mainFeedCollectiblesNearLiveData.value = result.first
+            _mainFeedCollectiblesFarLiveData.value = result.second
         }
     }
 
@@ -88,38 +64,14 @@ class MainViewModel : ViewModel() {
         get() = _isTradeMessageSentLiveData
 
     fun sendTradeMessage(thisUserInfo: UserInfo, otherUserInfo: UserInfo, tradeMessage: TradeMessage) {
-        println("thisUserInfo = $thisUserInfo")
-        println("otherUserInfo = $otherUserInfo")
         viewModelScope.launch {
             _isTradeMessageSentLiveData.value =
                 repository.sendTradeOfferMessage(thisUserInfo, otherUserInfo, tradeMessage)
         }
     }
 
-    private val _tradeImagesSenderLiveData = MutableLiveData<ListResult?>()
-    val tradeImagesSenderLiveData: LiveData<ListResult?>
-        get() = _tradeImagesSenderLiveData
-
-    fun getImagesForTradeSender(userId: String, otherUserId: String, tradeId: String) {
-        viewModelScope.launch {
-            _tradeImagesSenderLiveData.value =
-                repository.getImagesForTradeSender(userId, otherUserId, tradeId)
-        }
-    }
-
-    private val _tradeImagesReceiverLiveData = MutableLiveData<ListResult?>()
-    val tradeImagesReceiverLiveData: LiveData<ListResult?>
-        get() = _tradeImagesReceiverLiveData
-
-    fun getImagesForTradeReceiver(userId: String, otherUserId: String, tradeId: String) {
-        viewModelScope.launch {
-            _tradeImagesReceiverLiveData.value =
-                repository.getImagesForTradeReceiver(userId, otherUserId, tradeId)
-        }
-    }
-
-    private val _messagesLiveData = MutableLiveData<MutableList<DocumentSnapshot?>?>()
-    val messagesLiveData: LiveData<MutableList<DocumentSnapshot?>?>
+    private val _messagesLiveData = MutableLiveData<ArrayList<Message>?>()
+    val messagesLiveData: LiveData<ArrayList<Message>?>
         get() = _messagesLiveData
 
     fun listenForMessagesFromOtherUser(userId: String, otherUserId: String) {
@@ -127,17 +79,6 @@ class MainViewModel : ViewModel() {
             repository.listenForTextMessagesFromOtherUser(userId, otherUserId).collect {
                 _messagesLiveData.value = it
             }
-        }
-    }
-
-    private val _imageMessagesLiveData = MutableLiveData<ByteArray?>()
-    val imageMessagesLiveData: LiveData<ByteArray?>
-        get() = _imageMessagesLiveData
-
-    fun getImageFromImageMessage(userId: String, otherUserId: String, imageMessage: ImageMessage) {
-        viewModelScope.launch {
-            _imageMessagesLiveData.value =
-                repository.getImageFromImageMessage(userId, otherUserId, imageMessage)
         }
     }
 
@@ -155,35 +96,27 @@ class MainViewModel : ViewModel() {
     val isTradeStatusUpdatedLiveData: LiveData<TradeMessage?>
         get() = _isTradeStatusUpdatedLiveData
 
-    fun updateTradeStatus(userId: String, otherUserId: String, tradeMessage: TradeMessage) {
+    fun updateTradeStatus(userInfo: UserInfo, otherUserInfo: UserInfo, tradeMessage: TradeMessage) {
         viewModelScope.launch {
             _isTradeStatusUpdatedLiveData.value =
-                repository.updateTradeStatus(userId, otherUserId, tradeMessage)
+                repository.updateTradeStatus(userInfo, otherUserInfo, tradeMessage)
         }
     }
 
-    private val _tradeMessagesForUser = MutableLiveData<QuerySnapshot?>()
-    val tradeMessagesForUser: LiveData<QuerySnapshot?>
-        get() = _tradeMessagesForUser
 
-    fun getTradeMessagesForUser(userId: String) {
-        viewModelScope.launch {
-            _tradeMessagesForUser.value = repository.getTradeMessagesForUser(userId)
-        }
-    }
 
-    private val _isUserInfoUpdatedLiveData = MutableLiveData<Boolean>()
-    val isUserInfoUpdatedLiveData: LiveData<Boolean>
+    private val _isUserInfoUpdatedLiveData = MutableLiveData<UserInfo?>()
+    val isUserInfoUpdatedLiveData: LiveData<UserInfo?>
         get() = _isUserInfoUpdatedLiveData
 
-    fun updateUserInfo(userInfo: UserInfo) {
+    fun updateProfile(userInfo: UserInfo, filePath: Uri?) {
         viewModelScope.launch {
-            _isUserInfoUpdatedLiveData.value = repository.updateUserInfo(userInfo)
+            _isUserInfoUpdatedLiveData.value = repository.updateProfile(userInfo, filePath)
         }
     }
 
-    private val _userInfoLiveData = MutableLiveData<DocumentSnapshot?>()
-    val userInfoLiveData: LiveData<DocumentSnapshot?>
+    private val _userInfoLiveData = MutableLiveData<UserInfo?>()
+    val userInfoLiveData: LiveData<UserInfo?>
         get() = _userInfoLiveData
 
     fun getUserInfo(uid: String) {
@@ -192,49 +125,50 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    private val _otherUserInfoLiveData = MutableLiveData<DocumentSnapshot?>()
-    val otherUserInfoLiveData: LiveData<DocumentSnapshot?>
-        get() = _otherUserInfoLiveData
-
-    fun getOtherUserInfo(uid: String) {
-        viewModelScope.launch {
-            _otherUserInfoLiveData.value = repository.getUserInfo(uid)
-        }
-    }
-
-    private val _isCollectibleDeletedLiveData = MutableLiveData<Boolean>()
-    val isCollectibleDeletedLiveData: LiveData<Boolean>
+    private val _isCollectibleDeletedLiveData = MutableLiveData<Collectible?>()
+    val isCollectibleDeletedLiveData: LiveData<Collectible?>
         get() = _isCollectibleDeletedLiveData
 
-    fun deleteCollectible(userId: String, collectibleId: String) {
+    fun deleteCollectible(userInfo: UserInfo, collectible: Collectible) {
         viewModelScope.launch {
             _isCollectibleDeletedLiveData.value =
-                repository.deleteCollectible(userId, collectibleId)
+                repository.deleteCollectible(userInfo, collectible)
         }
     }
 
-    private val _isTradeAcceptanceReceivedUpdatedLiveData = MutableLiveData<TradeMessage?>()
-    val isTradeStatusAcceptanceReceivedUpdatedLiveData: LiveData<TradeMessage?>
+    private val _checkForAcceptedTradesLiveData = MutableLiveData<TradeMessage?>()
+    val checkForAcceptedTradeLiveData: LiveData<TradeMessage?>
+        get() = _checkForAcceptedTradesLiveData
+
+    fun checkForAcceptedTrades(userId: String){
+        viewModelScope.launch {
+            _checkForAcceptedTradesLiveData.value = repository.checkForAcceptedTrades(userId)
+        }
+    }
+
+    private val _isTradeAcceptanceReceivedUpdatedLiveData = MutableLiveData<UserInfo?>()
+    val isTradeStatusAcceptanceReceivedUpdatedLiveData: LiveData<UserInfo?>
         get() = _isTradeAcceptanceReceivedUpdatedLiveData
 
     fun updateTradeAcceptanceReceived(
         userId: String,
         otherUserId: String,
-        tradeMessage: TradeMessage
+        tradeMessage: TradeMessage,
+        deleteCollectibles: Boolean
     ) {
         viewModelScope.launch {
             _isTradeAcceptanceReceivedUpdatedLiveData.value =
-                repository.updateTradeAcceptanceReceived(userId, otherUserId, tradeMessage)
+                repository.updateTradeAcceptanceReceived(userId, otherUserId, tradeMessage, deleteCollectibles)
         }
     }
 
-    private val _isUserRatedSuccessfully = MutableLiveData<Boolean>()
-    val isUserRatedSuccessfully: LiveData<Boolean>
+    private val _isUserRatedSuccessfully = MutableLiveData<UserInfo?>()
+    val isUserRatedSuccessfully: LiveData<UserInfo?>
         get() = _isUserRatedSuccessfully
 
     fun rateUser(otherUserInfo: UserInfo){
         viewModelScope.launch {
-            _isUserRatedSuccessfully.value = repository.updateUserInfo(otherUserInfo)
+            _isUserRatedSuccessfully.value = repository.updateProfile(otherUserInfo, null)
         }
     }
 
@@ -248,9 +182,6 @@ class MainViewModel : ViewModel() {
         imageMessage: ImageMessage,
         filePath: Uri
     ) {
-        println("thisUserInfo = $thisUserInfo")
-        println("otherUserInfo = $otherUserInfo")
-        println(imageMessage)
         viewModelScope.launch {
             _isImageMessageSentLiveData.value =
                 repository.sendImageMessageToUser(thisUserInfo, otherUserInfo, imageMessage, filePath)
@@ -262,9 +193,9 @@ class MainViewModel : ViewModel() {
         get() = _isCollectibleUpdatedLiveData
 
 
-    fun updateCollectible(collectible: Collectible) {
+    fun updateCollectibleViews(userInfo: UserInfo, collectible: Collectible) {
         viewModelScope.launch {
-            _isCollectibleUpdatedLiveData.value = repository.updateCollectible(collectible)
+            _isCollectibleUpdatedLiveData.value = repository.updateCollectibleViews(userInfo, collectible)
         }
 
     }

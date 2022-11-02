@@ -2,49 +2,41 @@ package com.example.collectorconnector.repository
 
 import android.net.Uri
 import com.example.collectorconnector.models.*
-import com.example.collectorconnector.util.Constants.ONE_HUNDRED_MEGABYTE
+import com.example.collectorconnector.util.Constants
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.FirebaseStorage
-import com.google.firebase.storage.ListResult
-import com.google.firebase.storage.StorageMetadata
 import com.google.firebase.storage.ktx.storageMetadata
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
-import java.util.*
-import kotlin.collections.ArrayList
+import java.text.SimpleDateFormat
 
 
 object FirebaseRepository {
 
 
     // update collectible
-    suspend fun updateCollectible(collectible: Collectible): Boolean {
+    suspend fun updateCollectibleViews(
+        userInfo: UserInfo, collectible: Collectible
+    ): Boolean {
         return try {
-            // Create file metadata including the content type
-            var metadata = storageMetadata {
-                contentType = "image/jpg"
-                setCustomMetadata("name", collectible.name)
-                setCustomMetadata("desc", collectible.description)
-                setCustomMetadata("cond", collectible.condition)
-                setCustomMetadata("tags", collectible.tags.toString()
-                    .replace("[", "").replace("]", ""))
-                setCustomMetadata("views", collectible.timesViewed)
-                setCustomMetadata("ownerId", collectible.ownerId)
-            }
 
-            FirebaseStorage.getInstance().reference.child("users").child(collectible.ownerId)
-                .child("collectibles").child(collectible.uid).updateMetadata(metadata)
-                .await()
+            val index = userInfo.collectibles.indexOf(collectible)
+            var views = userInfo.collectibles[index].timesViewed.toInt()
+            views++
+            userInfo.collectibles[index].timesViewed = views.toString()
+
+            Firebase.firestore.collection("users").document("all_users")
+                .collection(userInfo.uid).document("user_info")
+                .update("collectibles", userInfo.collectibles).await()
 
             true
         } catch (e: Exception) {
@@ -52,15 +44,29 @@ object FirebaseRepository {
         }
     }
 
-    suspend fun getCollectibleCategories(): DocumentSnapshot? {
+    suspend fun getAppStartingData(): Pair<ArrayList<String>, ArrayList<String>>? {
         return try {
-            Firebase.firestore.collection("app_data").document("collectible_categories")
+            val categories =
+                Firebase.firestore.collection("app_data").document("collectible_categories")
+                    .get().await().get("categories") as ArrayList<String>
+            val conditions =
+                Firebase.firestore.collection("app_data").document("collectible_conditions")
+                    .get().await().get("conditions") as ArrayList<String>
+            Pair(categories, conditions)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    suspend fun getCollectibleConditions(): DocumentSnapshot? {
+        return try {
+            Firebase.firestore.collection("app_data").document("collectible_conditions")
                 .get().await()
         } catch (e: Exception) {
             null
         }
     }
-
 
     // login
     suspend fun signInWithEmailAndPw(email: String, password: String): AuthResult? {
@@ -77,104 +83,254 @@ object FirebaseRepository {
     suspend fun registerWithEmailAndPw(email: String, password: String): AuthResult? {
         return try {
 
-            FirebaseAuth.getInstance()
+            val authResult = FirebaseAuth.getInstance()
                 .createUserWithEmailAndPassword(email, password)
                 .await()
 
+            val data =
+                Firebase.firestore.collection("users")
+                    .document("all_users").get().await().data
+            var users: ArrayList<String>
+            if (data == null)
+                users = ArrayList()
+            else users = data["list"] as ArrayList<String>
+            users.add(authResult.user!!.uid)
+            val allUsers = AllUsers(users)
 
+            Firebase.firestore.collection("users").document("all_users").set(allUsers).await()
+
+            authResult
         } catch (e: Exception) {
+            e.printStackTrace()
             null
-        }
-    }
-
-    // update user info
-    suspend fun updateUserInfo(userInfo: UserInfo): Boolean {
-        return try {
-            Firebase.firestore.collection("users").document(userInfo.uid)
-                .collection("user_info").document("user_info_doc")
-                .set(userInfo).await()
-            true
-        } catch (e: Exception) {
-            false
         }
     }
 
     // get user info
-    suspend fun getUserInfo(uid: String): DocumentSnapshot? {
+    suspend fun getUserInfo(uid: String): UserInfo? {
         return try {
-            Firebase.firestore.collection("users").document(uid)
-                .collection("user_info").document("user_info_doc")
-                .get().await()
+            Firebase.firestore.collection("users").document("all_users")
+                .collection(uid).document("user_info")
+                .get().await().toObject(UserInfo::class.java)
+
         } catch (e: Exception) {
+            e.printStackTrace()
             null
         }
     }
-
-    // get all users with collectibles
-    suspend fun getAllUsersWithCollectibles(): ListResult? {
-        return try {
-            FirebaseStorage.getInstance().reference.child("users")
-                .listAll().await()
-        } catch (e: Exception) {
-            return null
-        }
-    }
-
-    // get user collectibles based on uid
-    suspend fun getCollectiblesByUserId(uid: String): ListResult? {
-        return try {
-            FirebaseStorage.getInstance().reference.child("users")
-                .child(uid).child("collectibles").listAll().await()
-        } catch (e: Exception) {
-            null
-        }
-    }
-
 
     // add user profile image
-    suspend fun addProfileImg(
-        userId: String,
-        filepath: Uri,
-    ): Uri? {
+    suspend fun updateProfile(
+        userInfo: UserInfo,
+        filepath: Uri?,
+    ): UserInfo? {
         return try {
-            FirebaseStorage.getInstance().reference.child("users").child(userId)
-                .child("profile_img")
-                .child("profile_img").putFile(filepath).await()
-            FirebaseStorage.getInstance().reference.child("users").child(userId)
-            .child("profile_img").child("profile_img").downloadUrl.await()
+            if (filepath != null) {
+                val upload =
+                    FirebaseStorage.getInstance().reference.child("users").child(userInfo.uid)
+                        .child("profile_img")
+                        .child("profile_img").putFile(filepath).await()
+                userInfo.profileImgUrl = upload.storage.downloadUrl.await().toString()
+            }
+            Firebase.firestore.collection("users").document("all_users")
+                .collection(userInfo.uid).document("user_info").set(userInfo).await()
+
+            userInfo
         } catch (e: Exception) {
-           null
+            null
         }
     }
 
 
     // add collectible to user
     suspend fun addCollectible(
-        userId: String,
-        collectibleId: String,
+        userInfo: UserInfo,
         filepath: Uri,
-        metadata: StorageMetadata
-    ): Boolean {
+        collectible: Collectible
+    ): Collectible? {
         return try {
-            FirebaseStorage.getInstance().reference.child("users").child(userId)
-                .child("collectibles").child(collectibleId)
+            val metadata = storageMetadata {
+                contentType = "image"
+            }
+            val upload = FirebaseStorage.getInstance().reference.child("users").child(userInfo.uid)
+                .child("collectibles").child(collectible.uid)
                 .putFile(filepath, metadata).await()
-            true
+            collectible.imageUrl = upload.storage.downloadUrl.await().toString()
+            userInfo.collectibles.add(collectible)
+            Firebase.firestore.collection("users").document("all_users")
+                .collection(userInfo.uid).document("user_info")
+                .set(userInfo).await()
+            collectible
         } catch (e: Exception) {
-            false
+            null
         }
     }
 
     // delete collectible from user
-    suspend fun deleteCollectible(userId: String, collectibleId: String): Boolean {
+    suspend fun deleteCollectible(userInfo: UserInfo, collectible: Collectible): Collectible? {
         return try {
-            FirebaseStorage.getInstance().reference.child("users").child(userId)
-                .child("collectibles").child(collectibleId).delete().await()
-            true
+            // check if any users have favorited that collectible. If so, remove it from their favorites
+            val userList = Firebase.firestore.collection("users")
+                .document("all_users").get().await().data!!.get("list") as ArrayList<String>
+            for (user in userList) {
+                val userInfoCheck = Firebase.firestore.collection("users").document("all_users")
+                    .collection(user).document("user_info").get().await()
+                    .toObject(UserInfo::class.java)
+                if (userInfoCheck!!.favoriteCollectibles.contains(collectible)) {
+                    userInfoCheck.favoriteCollectibles.remove(collectible)
+                    updateProfile(userInfoCheck, null)
+                }
+            }
+
+            // delete collectible image from firebase storage
+            FirebaseStorage.getInstance().reference.child("users").child(userInfo.uid)
+                .child("collectibles").child(collectible.uid).delete().await()
+            userInfo.collectibles.remove(collectible)
+
+            // delete collectible from user info
+            Firebase.firestore.collection("users").document("all_users")
+                .collection(userInfo.uid).document("user_info")
+                .set(userInfo).await()
+
+            collectible
         } catch (e: Exception) {
             e.printStackTrace()
-            false
+            null
         }
+    }
+
+    suspend fun getMainFeed(
+        userInfo: UserInfo,
+        isUsingSearch: Boolean,
+        searchValue: String?,
+        tagsList: ArrayList<String>?,
+        conditionsList: ArrayList<String>?
+    ): Pair<ArrayList<Collectible>, ArrayList<Collectible>>? {
+        return try {
+
+            val collectiblesWithinDistance = ArrayList<Collectible>()
+            val collectiblesOutOfDistance = ArrayList<Collectible>()
+            val allUsers = Firebase.firestore.collection("users").document("all_users")
+                .get().await().get("list") as ArrayList<String>
+            for (userId in allUsers) {
+                if (userId == userInfo.uid) continue
+
+                val otherUserInfo =
+                    Firebase.firestore.collection("users").document("all_users")
+                        .collection(userId).document("user_info").get().await()
+                        .toObject(UserInfo::class.java)
+
+                if (userInfo.isLocationSet && otherUserInfo!!.isLocationSet) {
+                    val distance = distance(
+                        userInfo.latitude.toFloat(),
+                        userInfo.longitude.toFloat(),
+                        otherUserInfo!!.latitude.toFloat(),
+                        otherUserInfo.longitude.toFloat(),
+                    )
+
+                    if (distance > userInfo.searchDistance) continue
+                    if (isUsingSearch) {
+                        for (collectible in otherUserInfo.collectibles) {
+                            val nameAndDescription =
+                                collectible.name + " " + collectible.description
+                            if (searchValue != "") {
+                                if (!nameAndDescription.contains(searchValue!!))
+                                    continue
+                            }
+                            if (tagsList!!.isNotEmpty()) {
+                                var correctTag = false
+                                for (tag in collectible.tags) {
+                                    if (tagsList!!.contains(tag)) {
+                                        correctTag = true
+                                    }
+                                }
+                                if (!correctTag) continue
+                            }
+                            if (conditionsList!!.isNotEmpty()) {
+                                var correctCondition = false
+                                for (condition in conditionsList) {
+                                    if (condition == collectible.condition) {
+                                        correctCondition = true
+                                    }
+                                }
+                                if (!correctCondition) continue
+                            }
+
+                            collectiblesWithinDistance.add(collectible)
+                        }
+                    } else {
+                        for (collectible in otherUserInfo.collectibles) {
+                            for (tag in collectible.tags) {
+                                if (userInfo.interests.contains(tag)) {
+                                    collectiblesWithinDistance.add(collectible)
+                                    break
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    if (isUsingSearch) {
+                        for (collectible in otherUserInfo!!.collectibles) {
+                            val nameAndDescription =
+                                collectible.name + " " + collectible.description
+                            if (searchValue != "") {
+                                if (!nameAndDescription.contains(searchValue!!))
+                                    continue
+                            }
+                            if (tagsList!!.isNotEmpty()) {
+                                var correctTag = false
+                                for (tag in collectible.tags) {
+                                    if (tagsList!!.contains(tag)) {
+                                        correctTag = true
+                                    }
+                                }
+                                if (!correctTag) continue
+                            }
+                            if (conditionsList!!.isNotEmpty()) {
+                                var correctCondition = false
+                                for (condition in conditionsList) {
+                                    if (condition == collectible.condition) {
+                                        correctCondition = true
+                                    }
+                                }
+                                if (!correctCondition) continue
+                            }
+
+                            collectiblesOutOfDistance.add(collectible)
+                        }
+                    } else {
+                        if (otherUserInfo!!.collectibles.size > 0) {
+                            for (collectible in otherUserInfo.collectibles) {
+                                for (tag in collectible.tags) {
+                                    if (userInfo.interests.contains(tag)) {
+                                        collectiblesOutOfDistance.add(collectible)
+                                        break
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Pair(collectiblesWithinDistance, collectiblesOutOfDistance)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    private fun distance(lat_a: Float, lng_a: Float, lat_b: Float, lng_b: Float): Float {
+        val earthRadius = 3958.75
+        val latDiff = Math.toRadians((lat_b - lat_a).toDouble())
+        val lngDiff = Math.toRadians((lng_b - lng_a).toDouble())
+        val a = Math.sin(latDiff / 2) * Math.sin(latDiff / 2) +
+                Math.cos(Math.toRadians(lat_a.toDouble())) * Math.cos(Math.toRadians(lat_b.toDouble())) *
+                Math.sin(lngDiff / 2) * Math.sin(lngDiff / 2)
+        val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+        val distance = earthRadius * c
+
+        return distance.toFloat()
     }
 
     // send textMessage to other user
@@ -185,26 +341,38 @@ object FirebaseRepository {
     ): Boolean {
         return try {
             var conversation = Conversation(
-                otherUserInfo.uid, otherUserInfo.screenName, otherUserInfo.profileImgUrl,textMessage.text, textMessage.time
+                otherUserInfo.uid,
+                otherUserInfo.screenName,
+                otherUserInfo.profileImgUrl,
+                textMessage.text,
+                textMessage.time
             )
 
-            FirebaseFirestore.getInstance().collection("users").document(thisUserInfo.uid)
-                .collection("conversations").document(otherUserInfo.uid).set(conversation)
+            Firebase.firestore.collection("users")
+                .document("all_users").collection(thisUserInfo.uid).document("user_info")
+                .collection("conversations").document(otherUserInfo.uid).set(conversation).await()
 
-            FirebaseFirestore.getInstance().collection("users").document(otherUserInfo.uid)
-                .collection("conversations").document(thisUserInfo.uid)
+            FirebaseFirestore.getInstance().collection("users").document("all_users")
+                .collection(thisUserInfo.uid).document("user_info")
+                .collection("conversations").document(otherUserInfo.uid)
                 .collection("messages").document(textMessage.messageId)
                 .set(textMessage).await()
 
             conversation = Conversation(
-                thisUserInfo.uid, thisUserInfo.screenName, thisUserInfo.profileImgUrl, textMessage.text, textMessage.time
+                thisUserInfo.uid,
+                thisUserInfo.screenName,
+                thisUserInfo.profileImgUrl,
+                textMessage.text,
+                textMessage.time
             )
 
-            FirebaseFirestore.getInstance().collection("users").document(otherUserInfo.uid)
-                .collection("conversations").document(thisUserInfo.uid).set(conversation)
+            Firebase.firestore.collection("users")
+                .document("all_users").collection(otherUserInfo.uid).document("user_info")
+                .collection("conversations").document(thisUserInfo.uid).set(conversation).await()
 
-            FirebaseFirestore.getInstance().collection("users").document(thisUserInfo.uid)
-                .collection("conversations").document(otherUserInfo.uid)
+            FirebaseFirestore.getInstance().collection("users").document("all_users")
+                .collection(otherUserInfo.uid).document("user_info")
+                .collection("conversations").document(thisUserInfo.uid)
                 .collection("messages").document(textMessage.messageId)
                 .set(textMessage).await()
 
@@ -214,6 +382,7 @@ object FirebaseRepository {
             return false
         }
     }
+
 
     // send textMessage to other user
     suspend fun sendImageMessageToUser(
@@ -224,52 +393,78 @@ object FirebaseRepository {
     ): Boolean {
         return try {
             var conversation = Conversation(
-                otherUserInfo.uid, otherUserInfo.screenName, otherUserInfo.profileImgUrl, "image", imageMessage.time
+                otherUserInfo.uid,
+                otherUserInfo.screenName,
+                otherUserInfo.profileImgUrl,
+                "image",
+                imageMessage.time
             )
 
             var metadata = storageMetadata {
                 contentType = "image/jpg"
-                setCustomMetadata("senderId", thisUserInfo.uid)
-                setCustomMetadata("receiverId", otherUserInfo.uid)
-                setCustomMetadata("time", imageMessage.time)
             }
 
 
             //update conversation item on firestore for user 1
-            FirebaseFirestore.getInstance().collection("users").document(thisUserInfo.uid)
-                .collection("conversations").document(otherUserInfo.uid).set(conversation)
+            FirebaseFirestore.getInstance().collection("users").document("all_users")
+                .collection(thisUserInfo.uid).document("user_info").collection("conversations")
+                .document(otherUserInfo.uid).set(conversation).await()
 
             //update image messages on cloud storage for user 1
             FirebaseStorage.getInstance().reference.child("users").child(thisUserInfo.uid)
                 .child("conversations").child(otherUserInfo.uid).child("image_messages")
-                .child(imageMessage.messageId).putFile(uri, metadata).await()
+                .child(imageMessage.messageId).putFile(uri, metadata).addOnSuccessListener {
+
+                    FirebaseStorage.getInstance().reference.child("users").child(thisUserInfo.uid)
+                        .child("conversations").child(otherUserInfo.uid).child("image_messages")
+                        .child(imageMessage.messageId).downloadUrl.addOnSuccessListener {
+                            imageMessage.imageUrl = it.toString()
+
+                            // update messages on firestore for user 1
+                            FirebaseFirestore.getInstance().collection("users")
+                                .document("all_users")
+                                .collection(thisUserInfo.uid).document("user_info")
+                                .collection("conversations")
+                                .document(otherUserInfo.uid).collection("messages")
+                                .document(imageMessage.messageId)
+                                .set(imageMessage)
+                        }
+                }
+
 
             conversation = Conversation(
-                thisUserInfo.uid, thisUserInfo.screenName, thisUserInfo.profileImgUrl, "image", imageMessage.time
+                thisUserInfo.uid,
+                thisUserInfo.screenName,
+                thisUserInfo.profileImgUrl,
+                "image",
+                imageMessage.time
             )
 
-            //update conversation doc for user 2
-            FirebaseFirestore.getInstance().collection("users").document(otherUserInfo.uid)
-                .collection("conversations").document(thisUserInfo.uid).set(conversation)
+            //update conversation item on firestore for user 2
+            FirebaseFirestore.getInstance().collection("users").document("all_users")
+                .collection(otherUserInfo.uid).document("user_info").collection("conversations")
+                .document(thisUserInfo.uid).set(conversation).await()
 
             //update image messages on cloud storage for user 2
             FirebaseStorage.getInstance().reference.child("users").child(otherUserInfo.uid)
                 .child("conversations").child(thisUserInfo.uid).child("image_messages")
-                .child(imageMessage.messageId).putFile(uri, metadata).await()
+                .child(imageMessage.messageId).putFile(uri, metadata).addOnSuccessListener {
 
-            imageMessage.image = null
+                    FirebaseStorage.getInstance().reference.child("users").child(otherUserInfo.uid)
+                        .child("conversations").child(thisUserInfo.uid).child("image_messages")
+                        .child(imageMessage.messageId).downloadUrl.addOnSuccessListener {
+                            imageMessage.imageUrl = it.toString()
 
-            // update messages on firestore for user 1
-            FirebaseFirestore.getInstance().collection("users").document(thisUserInfo.uid)
-                .collection("conversations").document(otherUserInfo.uid)
-                .collection("messages").document(imageMessage.messageId)
-                .set(imageMessage)
-
-            // update messages on firestore for user 2
-            FirebaseFirestore.getInstance().collection("users").document(otherUserInfo.uid)
-                .collection("conversations").document(thisUserInfo.uid)
-                .collection("messages").document(imageMessage.messageId)
-                .set(imageMessage)
+                            // update messages on firestore for user 2
+                            FirebaseFirestore.getInstance().collection("users")
+                                .document("all_users")
+                                .collection(otherUserInfo.uid).document("user_info")
+                                .collection("conversations")
+                                .document(thisUserInfo.uid).collection("messages")
+                                .document(imageMessage.messageId)
+                                .set(imageMessage)
+                        }
+                }
 
             true
         } catch (e: Exception) {
@@ -277,6 +472,7 @@ object FirebaseRepository {
             return false
         }
     }
+
 
     suspend fun sendTradeOfferMessage(
         thisUserInfo: UserInfo,
@@ -285,169 +481,133 @@ object FirebaseRepository {
     ): Boolean {
         return try {
 
-
-            // sender
-            for(i in tradeMessage.trade!!.senderCollectibles.indices){
-
-                val metadata = storageMetadata {
-                    setCustomMetadata("collectible_id", tradeMessage.trade.senderCollectibles[i].uid)
-                }
-                // update cloud storage where trade collectible images are stored
-                FirebaseStorage.getInstance().reference.child("users").child(thisUserInfo.uid)
-                    .child("conversations").child(otherUserInfo.uid).child("trade_offers")
-                    .child(tradeMessage.messageId).child("sender").child(UUID.randomUUID().toString())
-                    .putBytes(tradeMessage.trade.senderCollectibles[i].imageByteArray!!, metadata)
-                    .await()
-
-                // update cloud storage where trade collectible images are stored
-                FirebaseStorage.getInstance().reference.child("users").child(thisUserInfo.uid)
-                    .child("conversations").child(otherUserInfo.uid).child("trade_offers")
-                    .child(tradeMessage.messageId).child("receiver").child(UUID.randomUUID().toString())
-                    .putBytes(tradeMessage.trade.receiverCollectibles[i].imageByteArray!!, metadata)
-                    .await()
-
-
-            }
-
-            // receiver
-            for(i in tradeMessage.trade.receiverCollectibles.indices){
-
-                val metadata = storageMetadata {
-                    setCustomMetadata("collectible_id", tradeMessage.trade.receiverCollectibles[i].uid)
-                }
-                // update cloud storage where trade collectible images are stored
-                FirebaseStorage.getInstance().reference.child("users").child(otherUserInfo.uid)
-                    .child("conversations").child(thisUserInfo.uid).child("trade_offers")
-                    .child(tradeMessage.messageId).child("receiver").child(UUID.randomUUID().toString())
-                    .putBytes(tradeMessage.trade.receiverCollectibles[i].imageByteArray!!, metadata)
-                    .await()
-
-                // update cloud storage where trade collectible images are stored
-                FirebaseStorage.getInstance().reference.child("users").child(otherUserInfo.uid)
-                    .child("conversations").child(thisUserInfo.uid).child("trade_offers")
-                    .child(tradeMessage.messageId).child("sender").child(UUID.randomUUID().toString())
-                    .putBytes(tradeMessage.trade.senderCollectibles[i].imageByteArray!!, metadata)
-                    .await()
-
-            }
-
-            for(collectible in tradeMessage.trade.senderCollectibles)
-                collectible.imageByteArray = null
-            for(collectible in tradeMessage.trade.receiverCollectibles)
-                collectible.imageByteArray = null
-
-
-            // update last conversation last message
+            // update conversation last message
             var conversation = Conversation(
-                otherUserInfo.uid, otherUserInfo.screenName, otherUserInfo.profileImgUrl,"Trade Offer", tradeMessage.time
+                otherUserInfo.uid,
+                otherUserInfo.screenName,
+                otherUserInfo.profileImgUrl,
+                "Trade Offer",
+                tradeMessage.time
             )
 
-            FirebaseFirestore.getInstance().collection("users").document(thisUserInfo.uid)
-                .collection("conversations").document(otherUserInfo.uid).set(conversation)
+            FirebaseFirestore.getInstance().collection("users").document("all_users")
+                .collection(thisUserInfo.uid).document("user_info").collection("conversations")
+                .document(otherUserInfo.uid).set(conversation).await()
 
             conversation = Conversation(
-                thisUserInfo.uid, thisUserInfo.screenName, thisUserInfo.profileImgUrl,"Trade Offer", tradeMessage.time
+                thisUserInfo.uid,
+                thisUserInfo.screenName,
+                thisUserInfo.profileImgUrl,
+                "Trade Offer",
+                tradeMessage.time
             )
 
-            FirebaseFirestore.getInstance().collection("users").document(otherUserInfo.uid)
-                .collection("conversations").document(thisUserInfo.uid).set(conversation)
+            FirebaseFirestore.getInstance().collection("users").document("all_users")
+                .collection(otherUserInfo.uid).document("user_info").collection("conversations")
+                .document(thisUserInfo.uid).set(conversation).await()
 
 
             // update messages
-            FirebaseFirestore.getInstance().collection("users").document(otherUserInfo.uid)
-                .collection("conversations").document(thisUserInfo.uid)
-                .collection("messages").document(tradeMessage.messageId)
+            FirebaseFirestore.getInstance().collection("users").document("all_users")
+                .collection(thisUserInfo.uid).document("user_info").collection("conversations")
+                .document(otherUserInfo.uid).collection("messages").document(tradeMessage.messageId)
                 .set(tradeMessage).await()
 
-            FirebaseFirestore.getInstance().collection("users").document(thisUserInfo.uid)
-                .collection("conversations").document(otherUserInfo.uid)
-                .collection("messages").document(tradeMessage.messageId)
+            FirebaseFirestore.getInstance().collection("users").document("all_users")
+                .collection(otherUserInfo.uid).document("user_info").collection("conversations")
+                .document(thisUserInfo.uid).collection("messages").document(tradeMessage.messageId)
                 .set(tradeMessage).await()
+
             true
-        } catch (e: Exception){
+        } catch (e: Exception) {
             e.printStackTrace()
             return false
         }
+    }
+
+    suspend fun checkForAcceptedTrades(userId: String): TradeMessage? {
+        val conversationDocs =
+            FirebaseFirestore.getInstance().collection("users").document("all_users")
+                .collection(userId).document("user_info").collection("conversations").get().await()
+
+        for (doc in conversationDocs) {
+
+            val conversation = doc.toObject(Conversation::class.java)
+            val messagesDoc =
+                FirebaseFirestore.getInstance().collection("users").document("all_users")
+                    .collection(userId).document("user_info").collection("conversations")
+                    .document(conversation.otherUserId).collection("messages").get().await()
+            for (item in messagesDoc) {
+                if (item["type"] == Constants.MESSAGE_TYPE_TRADE) {
+                    val tradeMessage = item.toObject(TradeMessage::class.java)
+                    if (tradeMessage.tradeStatus == Constants.TRADE_STATUS_ACCEPTED && !tradeMessage.tradeAcceptanceReceived) {
+                        return tradeMessage
+                    }
+                }
+            }
+        }
+
+        return null
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     fun listenForTextMessagesFromOtherUser(
         userId: String,
         otherUserId: String
-    ): Flow<MutableList<DocumentSnapshot?>?> = callbackFlow {
+    ): Flow<ArrayList<Message>?> = callbackFlow {
 
-        val eventDocument = FirebaseFirestore.getInstance().collection("users")
-            .document(userId).collection("conversations")
-            .document(otherUserId).collection("messages")
+        val eventDocument =
+            FirebaseFirestore.getInstance().collection("users").document("all_users")
+                .collection(userId).document("user_info").collection("conversations")
+                .document(otherUserId).collection("messages").orderBy("time")
 
         // Generate a subscription that is going to let us listen for changes with
         // .addSnapshotListener and then offer those values to the channel that will be collected in viewmodel
         val subscription = eventDocument.addSnapshotListener { snapshot, _ ->
-            if (!snapshot!!.isEmpty && snapshot.documents.isNotEmpty())
-                offer(snapshot.documents)
-            else
+            if (!snapshot!!.isEmpty && snapshot.documents.isNotEmpty()) {
+                val messages = ArrayList<Message>()
+                for (doc in snapshot.documents) {
+                    val type = doc!!.get("type").toString()
+                    if (type == Constants.MESSAGE_TYPE_TEXT) {
+                        val textMessage = doc.toObject(TextMessage::class.java)!!
+                        if (!messages.contains(textMessage)) {
+                            messages.add(textMessage)
+                        }
+                    } else if (type == Constants.MESSAGE_TYPE_IMAGE) {
+                        // messages of type IMAGE retrieved from firestore
+                        // need to get the actual image from firebase storage
+                        val imageMessage = doc.toObject(ImageMessage::class.java)!!
+                        if (!messages.contains(imageMessage)) {
+                            messages.add(imageMessage)
+                        }
+                    } else if (type == Constants.MESSAGE_TYPE_TRADE) {
+                        //message of type TRADE retrieved from firestore.
+                        //need to get images from firebase storage
+                        // this is handled in the message adapter class
+                        val tradeMessage = doc.toObject(TradeMessage::class.java) as TradeMessage
+                        if (!messages.contains(tradeMessage)) {
+                            messages.add(tradeMessage)
+                        }
+                    }
+                }
+                messages.sortWith(compareBy {
+                    SimpleDateFormat("dd-MM-yy HH:mm").parse(it.time)
+                })
+                offer(messages)
+            } else
                 offer(null)
         }
 
-        //Finally if collect is not in use or collecting any data we cancel this channel to prevent any leak and remove the subscription listener to the database
+        //Finally if collect is not in use or collecting any data, cancel this channel to prevent
+        // any leak and remove the subscription listener to the database
         awaitClose { subscription.remove() }
     }
 
-    suspend fun getTradeMessagesForUser(userId: String): QuerySnapshot? {
-        return try {
-            Firebase.firestore.collection("users").document(userId)
-                .collection("conversations").get().await()
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-
-    }
-
-    // get image messages for user
-    suspend fun getImageFromImageMessage(uid: String, otherUserId: String, imageMessage: ImageMessage): ByteArray? {
-        return try {
-            //update image messages on cloud storage for user 1
-            FirebaseStorage.getInstance().reference.child("users").child(uid)
-                .child("conversations").child(otherUserId).child("image_messages")
-                .child(imageMessage.messageId).getBytes(ONE_HUNDRED_MEGABYTE).await()
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-    }
-
-    // get images for trade for user
-    suspend fun getImagesForTradeReceiver(userId: String, otherUserId: String, tradeId: String): ListResult? {
-        return try {
-            //update images for trade
-            FirebaseStorage.getInstance().reference.child("users").child(userId)
-                .child("conversations").child(otherUserId).child("trade_offers")
-                .child(tradeId).child("receiver")
-                .listAll().await()
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-    }
-
-    // get images for trade for user
-    suspend fun getImagesForTradeSender(userId: String, otherUserId: String, tradeId: String): ListResult? {
-        return try {
-            //update images for trade
-            FirebaseStorage.getInstance().reference.child("users").child(userId)
-                .child("conversations").child(otherUserId).child("trade_offers")
-                .child(tradeId).child("sender")
-                .listAll().await()
-        } catch (e: Exception) {
-            null
-        }
-    }
 
     suspend fun getConversationsForUser(userId: String): QuerySnapshot? {
         return try {
-            FirebaseFirestore.getInstance().collection("users").document(userId)
-                .collection("conversations").get().await()
+            FirebaseFirestore.getInstance().collection("users").document("all_users")
+                .collection(userId).document("user_info").collection("conversations").get().await()
         } catch (e: Exception) {
             e.printStackTrace()
             return null
@@ -455,18 +615,23 @@ object FirebaseRepository {
     }
 
     // update trade status
-    suspend fun updateTradeStatus(userId: String, otherUserId: String, tradeMessage: TradeMessage): TradeMessage? {
+    suspend fun updateTradeStatus(
+        userInfo: UserInfo,
+        otherUserInfo: UserInfo,
+        tradeMessage: TradeMessage
+    ): TradeMessage? {
         return try {
 
-            FirebaseFirestore.getInstance().collection("users").document(userId)
-                .collection("conversations").document(otherUserId)
-                .collection("messages").document(tradeMessage.messageId)
+            FirebaseFirestore.getInstance().collection("users").document("all_users")
+                .collection(otherUserInfo.uid).document("user_info").collection("conversations")
+                .document(userInfo.uid).collection("messages").document(tradeMessage.messageId)
                 .set(tradeMessage).await()
 
-            FirebaseFirestore.getInstance().collection("users").document(otherUserId)
-                .collection("conversations").document(userId)
-                .collection("messages").document(tradeMessage.messageId)
+            FirebaseFirestore.getInstance().collection("users").document("all_users")
+                .collection(userInfo.uid).document("user_info").collection("conversations")
+                .document(otherUserInfo.uid).collection("messages").document(tradeMessage.messageId)
                 .set(tradeMessage).await()
+
             tradeMessage
         } catch (e: Exception) {
             e.printStackTrace()
@@ -475,18 +640,39 @@ object FirebaseRepository {
     }
 
     // update trade status
-    suspend fun updateTradeAcceptanceReceived(userId: String, otherUserId: String, tradeMessage: TradeMessage): TradeMessage? {
+    suspend fun updateTradeAcceptanceReceived(
+        userId: String,
+        otherUserId: String,
+        tradeMessage: TradeMessage,
+        deleteCollectibles: Boolean
+    ): UserInfo? {
         return try {
 
-            FirebaseFirestore.getInstance().collection("users").document(userId)
-                .collection("conversations").document(otherUserId)
-                .collection("messages").document(tradeMessage.messageId)
+            FirebaseFirestore.getInstance().collection("users").document("all_users")
+                .collection(userId).document("user_info").collection("conversations")
+                .document(otherUserId).collection("messages").document(tradeMessage.messageId)
                 .set(tradeMessage).await()
 
-            tradeMessage
+            val otherUserInfo = getUserInfo(otherUserId)
+            if (deleteCollectibles) {
+                val currentUserInfo = getUserInfo(userId)
+                println("current user = ${currentUserInfo!!.screenName}")
+                for (collectible in tradeMessage.trade?.senderCollectibles!!) {
+                    if (currentUserInfo.collectibles.contains(collectible))
+                        deleteCollectible(currentUserInfo, collectible)
+                }
+                println("other user = ${otherUserInfo!!.screenName}")
+                for (collectible in otherUserInfo.collectibles) {
+                    if (otherUserInfo.collectibles.contains(collectible))
+                        deleteCollectible(otherUserInfo, collectible)
+                }
+            }
+            otherUserInfo
+
         } catch (e: Exception) {
             e.printStackTrace()
             null
         }
     }
+
 }

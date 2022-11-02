@@ -11,7 +11,7 @@
         <item name="colorOnSecondary">@color/white</item>
 
         <!-- for options menu inflated with toolbar -->
-        <item name="android:textColorSecondary">@android:color/white</item>
+        <item name="android:textColorSecondary">@color/pink</item>
 
 
 
@@ -19,10 +19,11 @@
         <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
 
-    </style>
 
-    <style name="SpinnerTheme" parent="android:Widget.Spinner">
-        <item name="android:background">@drawable/spinner_background</item>
+    </style>
+    <style name="ToolbarTheme" parent="@style/ThemeOverlay.AppCompat.ActionBar">
+        <!-- Customize color of navigation drawer icon and back arrow -->
+        <item name="colorControlNormal">@android:color/white</item>
     </style>
 
     <style name="BottomNavigationViewTextStyle">
@@ -35,6 +36,25 @@
         <item name="android:textSize">22sp</item>
         <item name="android:textStyle">bold</item>
     </style>
+
+    <style name="BottomNavigationViewSmall" parent="@style/TextAppearance.AppCompat.Caption">
+        <item name="android:textSize">12sp</item>
+        <item name="android:fontFamily">casual</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="BottomNavigationViewMedium" parent="@style/TextAppearance.AppCompat.Caption">
+        <item name="android:textSize">14sp</item>
+        <item name="android:fontFamily">casual</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="BottomNavigationViewLarge" parent="@style/TextAppearance.AppCompat.Caption">
+        <item name="android:textSize">22sp</item>
+        <item name="android:fontFamily">casual</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
 
 
 </resources>
